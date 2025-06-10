@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Cookies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .google-btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px auto;
+            min-height: 48px;
+            transition: background-color 0.3s;
+        }
+
+        .google-btn:hover:not(:disabled) {
+            background-color: #357abd;
+        }
+
+        .google-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .google-btn img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .loading-message {
+            background-color: #e8f4fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+
+        .success-message {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .retry-btn {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .retry-btn:hover {
+            background-color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Welcome to Cookies</h1>
+        
+        <button id="googleLogin" class="google-btn">
+            <img src="https://www.google.com/favicon.ico" alt="Google">
+            Sign in with Google
+        </button>
+        
+        <button id="redirectLogin" class="google-btn" style="background-color: #34a853; display: none;">
+            Try Redirect Method
+        </button>
+        
+        <div id="errorMessage" class="message error-message"></div>
+        <div id="loadingMessage" class="message loading-message"></div>
+        <div id="successMessage" class="message success-message"></div>
+        
+        <div class="debug-info">
+            <strong>Debug Info:</strong><br>
+            <span id="debugInfo">Initializing...</span>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Debug logging function
+        function debugLog(message) {
+            console.log(message);
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+        }
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDjoYMVx8qpJJRh2W6qCF9IE85r9UYc6dE",
+            authDomain: "cookies-7fe6b.firebaseapp.com",
+            projectId: "cookies-7fe6b",
+            storageBucket: "cookies-7fe6b.firebasestorage.app",
+            messagingSenderId: "569099166158",
+            appId: "1:569099166158:web:e0750fe26d33d2edf84b9f",
+            measurementId: "G-75XDFW09LX"
+        };
+
+        // Initialize Firebase with error handling
+        try {
+            if (!firebase.apps.length) {
+                debugLog('Initializing Firebase...');
+                firebase.initializeApp(firebaseConfig);
+                debugLog('Firebase initialized successfully');
+            } else {
+                debugLog('Firebase already initialized');
+            }
+        } catch (error) {
+            debugLog('Error initializing Firebase: ' + error.message);
+        }
+
+        // Get elements
+        const googleLoginBtn = document.getElementById('googleLogin');
+        const redirectLoginBtn = document.getElementById('redirectLogin');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Message display functions
+        function showMessage(element, message) {
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function hideMessage(element) {
+            element.style.display = 'none';
+        }
+
+        function hideAllMessages() {
+            hideMessage(errorMessage);
+            hideMessage(loadingMessage);
+            hideMessage(successMessage);
+        }
+
+        function showError(message) {
+            hideAllMessages();
+            showMessage(errorMessage, message);
+            resetButton();
+            // Show redirect option as fallback
+            redirectLoginBtn.style.display = 'block';
+        }
+
+        function showLoading(message = 'Processing sign-in...') {
+            hideAllMessages();
+            showMessage(loadingMessage, message);
+        }
+
+        function showSuccess(message) {
+            hideAllMessages();
+            showMessage(successMessage, message);
+        }
+
+        function resetButton() {
+            googleLoginBtn.disabled = false;
+            googleLoginBtn.innerHTML = '<img src="https://www.google.com/favicon.ico" alt="Google"> Sign in with Google';
+        }
+
+        // Check current environment
+        debugLog('Current URL: ' + window.location.href);
+        debugLog('Protocol: ' + window.location.protocol);
+        debugLog('Is HTTPS: ' + (window.location.protocol === 'https:'));
+        
+        // Check third-party cookie support
+        const cookiesAvailable = checkThirdPartyCookies();
+        debugLog('Third-party cookies available: ' + cookiesAvailable);
+        
+        if (!cookiesAvailable) {
+            showError('Third-party cookies are blocked. Please enable cookies in your browser settings or use the redirect method below.');
+            redirectLoginBtn.style.display = 'block';
+        }
+
+        // Check if user is already signed in
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                debugLog('User already signed in: ' + user.uid);
+                showSuccess('Already signed in! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                debugLog('No user signed in');
+            }
+        });
+
+        // Enhanced error handling function
+        function getErrorMessage(error) {
+            debugLog('Auth error code: ' + error.code);
+            debugLog('Auth error message: ' + error.message);
+            
+            switch (error.code) {
+                case 'auth/popup-closed-by-user':
+                    return 'Third-party cookies may be blocked. Please enable cookies or try the redirect method below.';
+                case 'auth/popup-blocked':
+                    return 'Popup was blocked. Please allow popups and try again, or use the redirect method below.';
+                case 'auth/network-request-failed':
+                    return 'Network error. Please check your connection and try again.';
+                case 'auth/operation-not-allowed':
+                    return 'Google sign-in is not enabled. Please contact support.';
+                case 'auth/unauthorized-domain':
+                    return 'This domain is not authorized. Please add it to Firebase Auth settings.';
+                case 'auth/cancelled-popup-request':
+                    return 'Another sign-in is in progress. Please wait.';
+                case 'auth/web-storage-unsupported':
+                    return 'Web storage is not supported. Please enable cookies and try again.';
+                default:
+                    return 'Login failed: ' + error.message;
+            }
+        }
+
+        // Check for third-party cookie support
+        function checkThirdPartyCookies() {
+            // Simple test for localStorage availability (indicator of cookie restrictions)
+            try {
+                localStorage.setItem('__test__', 'test');
+                localStorage.removeItem('__test__');
+                debugLog('Local storage available');
+                return true;
+            } catch (e) {
+                debugLog('Local storage blocked - likely third-party cookie issue');
+                return false;
+            }
+        }
+
+        // Popup sign-in method with better error handling
+        async function signInWithPopup() {
+            try {
+                hideAllMessages();
+                
+                // Check cookies first
+                if (!checkThirdPartyCookies()) {
+                    showError('Third-party cookies are blocked. Please enable cookies or use redirect method.');
+                    redirectLoginBtn.style.display = 'block';
+                    return;
+                }
+                
+                // Disable button and show loading state
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.textContent = 'Opening popup...';
+                
+                debugLog('Starting Google sign-in popup...');
+
+                // Create Google provider with enhanced settings
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('email');
+                provider.addScope('profile');
+                
+                // Additional settings to help with popup issues
+                provider.setCustomParameters({
+                    prompt: 'select_account',
+                    include_granted_scopes: 'true',
+                    access_type: 'online'
+                });
+
+                showLoading('Opening Google sign-in...');
+
+                // Add timeout to prevent hanging
+                const signInPromise = firebase.auth().signInWithPopup(provider);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Sign-in timeout')), 60000)
+                );
+
+                const result = await Promise.race([signInPromise, timeoutPromise]);
+                
+                if (result && result.user) {
+                    debugLog('Google sign-in successful: ' + result.user.email);
+                    showLoading('Authenticating with server...');
+                    
+                    try {
+                        // Get the ID token
+                        const idToken = await result.user.getIdToken();
+                        debugLog('Got ID token, length: ' + idToken.length);
+                        
+                        // Send token to backend
+                        const response = await fetch('/api/users/auth/google', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                idToken,
+                                user: {
+                                    uid: result.user.uid,
+                                    email: result.user.email,
+                                    displayName: result.user.displayName,
+                                    photoURL: result.user.photoURL
+                                }
+                            })
+                        });
+
+                        debugLog('Backend response status: ' + response.status);
+                        const data = await response.json();
+                        debugLog('Backend response: ' + JSON.stringify(data));
+
+                        if (response.ok) {
+                            showSuccess('Login successful! Redirecting...');
+                            debugLog('Login successful, redirecting...');
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 2000);
+                        } else {
+                            throw new Error(data.message || 'Backend authentication failed');
+                        }
+                    } catch (backendError) {
+                        debugLog('Backend auth error: ' + backendError.message);
+                        showError('Server authentication failed: ' + backendError.message);
+                    }
+                } else {
+                    debugLog('No user data received from Google');
+                    showError('No user information received from Google.');
+                }
+
+            } catch (error) {
+                debugLog('Sign-in error: ' + error.code + ' - ' + error.message);
+                
+                if (error.message === 'Sign-in timeout') {
+                    showError('Sign-in timed out. This might be due to third-party cookie restrictions. Try the redirect method.');
+                } else {
+                    showError(getErrorMessage(error));
+                }
+            }
+        }
+
+        // Redirect sign-in method (fallback)
+        async function signInWithRedirect() {
+            try {
+                debugLog('Starting redirect sign-in...');
+                showLoading('Redirecting to Google...');
+                
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('email');
+                provider.addScope('profile');
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+
+                await firebase.auth().signInWithRedirect(provider);
+            } catch (error) {
+                debugLog('Redirect sign-in error: ' + error.message);
+                showError('Redirect sign-in failed: ' + error.message);
+            }
+        }
+
+        // Handle redirect result on page load
+        firebase.auth().getRedirectResult().then((result) => {
+            if (result.user) {
+                debugLog('Redirect sign-in successful: ' + result.user.email);
+                showLoading('Processing redirect result...');
+                // Handle the successful sign-in similar to popup method
+                // ... (same backend authentication logic)
+            }
+        }).catch((error) => {
+            if (error.code !== 'auth/operation-not-allowed') {
+                debugLog('Redirect result error: ' + error.message);
+            }
+        });
+
+        // Event listeners
+        googleLoginBtn.addEventListener('click', signInWithPopup);
+        redirectLoginBtn.addEventListener('click', signInWithRedirect);
+
+        debugLog('Login page initialized');
+    </script>
+</body>
+</html>
