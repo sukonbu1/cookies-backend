@@ -1,11 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
-const path = require('path');
-
 const postRoutes = require('./routes/post.routes');
 
 const app = express();
@@ -42,8 +41,8 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Post service is running on port ${PORT}`);
 });
 
-module.exports = app; 
+module.exports = app;
