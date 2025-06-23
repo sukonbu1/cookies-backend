@@ -126,7 +126,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
 
 // Start background processors
-require('./services/order.service').startOrderProcessor();
+require('./utils/rabbitmq.util').startOrderProcessor();
 
 
 process.on('SIGINT', async () => {
