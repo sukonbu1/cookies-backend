@@ -21,9 +21,30 @@ const { notFoundHandler } = require('./middleware/notFound.middleware');
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
+  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
+  'http://localhost:3001',                             // Local User Service
+  'http://103.253.145.7:3001',                         // Production User Service
+  'http://localhost:5173',                             // Vite dev server
+  'http://localhost:8080',                             // Additional dev port
+  'https://localhost:3000',                            // HTTPS local frontend
+  'https://localhost:5173'                             // HTTPS Vite dev server
+];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie']
 }));
 app.use(helmet());
 app.use(morgan('dev'));
@@ -48,10 +69,18 @@ app.use(errorHandler);
 
 // Helper to fetch user info from user-service
 async function fetchUserInfoFromUserService(user_id, token) {
-  const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001/api/users';
+  const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
   try {
-    const response = await axios.get(`${userServiceUrl}/${user_id}`, {
-      headers: { Cookie: `token=${token}` }
+    // Check if the URL already includes /api/users
+    const baseUrl = userServiceUrl.includes('/api/users') ? userServiceUrl : `${userServiceUrl}/api/users`;
+    const fullUrl = `${baseUrl}/${user_id}`;
+    
+    const response = await axios.get(fullUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Cookie: `token=${token}`  // Keep cookie for backward compatibility
+      },
+      withCredentials: true
     });
     return response.data.data || response.data;
   } catch (err) {
@@ -119,6 +148,15 @@ app.post('/api/shop/orders', async (req, res) => {
   const orderData = { user_id, items, order_number: `ORD-${Date.now()}`, token };
   await sendToQueue('order-queue', orderData);
   res.status(202).json({ message: 'Order accepted', order_number: orderData.order_number });
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database connection failed:', err);
+  } else {
+    console.log('Database connected successfully');
+  }
 });
 
 // Start server
