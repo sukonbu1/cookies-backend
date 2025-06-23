@@ -9,6 +9,10 @@ class TokenUtils {
    */
   static async createCustomToken(uid, additionalClaims = {}) {
     try {
+      console.log('Creating custom token for:', {
+        uid,
+        claims: additionalClaims
+      });
       const customToken = await admin.auth().createCustomToken(uid, additionalClaims);
       return customToken;
     } catch (error) {
@@ -58,28 +62,54 @@ class TokenUtils {
    * @param {string} customToken - Firebase custom token
    * @returns {Promise<Object>} - Token validation result
    */
-  static async validateCustomToken(customToken) {
+  static async validateCustomToken(token) {
     try {
-      if (!customToken) {
+      console.log('Validating custom token');
+      
+      if (!token) {
+        console.log('No token provided');
         throw new Error('No token provided');
       }
 
-      // We can't directly verify custom tokens with Admin SDK
-      // But we can decode them as JWTs since we created them
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.decode(customToken);
-      
-      if (!decoded || !decoded.uid) {
-        throw new Error('Invalid custom token');
-      }
+      // First try to verify as a Firebase ID token
+      try {
+        console.log('Attempting to verify as Firebase ID token');
+        const decodedIdToken = await admin.auth().verifyIdToken(token);
+        console.log('Successfully verified as Firebase ID token:', {
+          uid: decodedIdToken.uid,
+          email: decodedIdToken.email
+        });
+        return decodedIdToken;
+      } catch (firebaseError) {
+        console.log('Failed to verify as Firebase ID token, trying as custom token');
+        // If Firebase ID token verification fails, try as a custom token
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.decode(token);
+        
+        if (!decoded || !decoded.uid) {
+          console.log('Invalid token format');
+          throw new Error('Invalid token format');
+        }
 
-      // Verify the user exists in Firebase Auth
-      await admin.auth().getUser(decoded.uid);
-      
-      return decoded;
+        // Verify the user exists in Firebase Auth
+        try {
+          const userRecord = await admin.auth().getUser(decoded.uid);
+          console.log('User verified in Firebase:', {
+            uid: userRecord.uid,
+            email: userRecord.email
+          });
+          return decoded;
+        } catch (userError) {
+          console.error('User verification failed:', userError);
+          throw new Error('Invalid user');
+        }
+      }
     } catch (error) {
-      console.error('Token validation error:', error);
-      throw new Error(`Token validation failed: ${error.message}`);
+      console.error('Token validation error:', {
+        message: error.message,
+        stack: error.stack
+      });
+      throw error;
     }
   }
 
@@ -89,11 +119,12 @@ class TokenUtils {
    * @param {string} token - Firebase token
    */
   static setAuthCookie(res, token) {
+    console.log('Setting auth cookie');
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      sameSite: 'lax',  // Changed from 'strict' to 'lax' for cross-site requests
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
   }
 
@@ -102,6 +133,7 @@ class TokenUtils {
    * @param {Object} res - Express response object
    */
   static clearAuthCookie(res) {
+    console.log('Clearing auth cookie');
     res.clearCookie('token');
   }
 }

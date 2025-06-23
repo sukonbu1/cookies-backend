@@ -170,26 +170,97 @@ class UserController {
     try {
       const { userId } = req.params;
 
+      console.log('getUser called:', {
+        userId: req.params.userId,
+        authenticatedUser: {
+          id: req.user.user_id,
+          email: req.user.email
+        },
+        headers: {
+          authorization: req.headers.authorization,
+          cookie: req.headers.cookie
+        }
+      });
+
       // Try to get from cache first
       const cachedUser = await redis.get(`user:${userId}`);
       if (cachedUser) {
+        console.log('User found in cache');
         return res.json(JSON.parse(cachedUser));
       }
+
+      console.log('User not in cache, querying database');
 
       // Get from database
       const user = await User.findById(userId);
       if (!user) {
+        console.log('User not found in database');
         return res.status(404).json({ message: 'User not found' });
       }
+
+      console.log('User found in database:', {
+        userId: user.user_id,
+        email: user.email
+      });
 
       // Remove sensitive data
       const { password_hash, ...userWithoutPassword } = user;
 
       // Cache the result
-      await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), { EX: CACHE_TTL });
-
+      await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
+      console.log('User cached successfully');
+      
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error('Error in getUser:', {
+        message: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
+
+  async getMe(req, res, next) {
+    try {
+      console.log('getMe called for user:', {
+        userId: req.user.user_id,
+        email: req.user.email
+      });
+
+      // Try to get from cache first
+      const cachedUser = await redis.get(`user:${req.user.user_id}`);
+      if (cachedUser) {
+        console.log('User found in cache');
+        return res.json(JSON.parse(cachedUser));
+      }
+
+      console.log('User not in cache, querying database');
+
+      // Get from database
+      const user = await User.findById(req.user.user_id);
+      if (!user) {
+        console.log('User not found in database');
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      console.log('User found in database:', {
+        userId: user.user_id,
+        email: user.email
+      });
+
+      // Remove sensitive data
+      const { password_hash, ...userWithoutPassword } = user;
+
+      // Cache the result
+      await redis.set(`user:${req.user.user_id}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
+      console.log('User cached successfully');
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error in getMe:', {
+        message: error.message,
+        stack: error.stack
+      });
       next(error);
     }
   }
@@ -257,7 +328,7 @@ class UserController {
       const { rows } = await pool.query(query, [userId, limit, (page - 1) * limit]);
 
       // Cache the result
-      await redis.set(cacheKey, JSON.stringify(rows), { EX: CACHE_TTL });
+      await redis.set(cacheKey, JSON.stringify(rows), 'EX', CACHE_TTL);
 
       res.json(rows);
     } catch (error) {
@@ -288,7 +359,7 @@ class UserController {
       const { rows } = await pool.query(query, [userId, limit, (page - 1) * limit]);
 
       // Cache the result
-      await redis.set(cacheKey, JSON.stringify(rows), { EX: CACHE_TTL });
+      await redis.set(cacheKey, JSON.stringify(rows), 'EX', CACHE_TTL);
 
       res.json(rows);
     } catch (error) {
@@ -318,7 +389,7 @@ class UserController {
       const { rows } = await pool.query(query, [userId, limit, (page - 1) * limit]);
 
       // Cache the result
-      await redis.set(cacheKey, JSON.stringify(rows), { EX: CACHE_TTL });
+      await redis.set(cacheKey, JSON.stringify(rows), 'EX', CACHE_TTL);
 
       res.json(rows);
     } catch (error) {

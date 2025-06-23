@@ -5,6 +5,7 @@ const userController = require('../controllers/user.controller');
 const { validateRequest } = require('../middleware/validation.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
+const User = require('../models/user.model');
 
 // Validation schemas
 const registerSchema = [
@@ -38,7 +39,24 @@ router.post('/login', loginSchema, validateRequest, userController.login);
 router.post('/auth/google', userController.googleAuth);
 router.post('/logout', authenticate, userController.logout);
 
+// Test endpoint for debugging
+router.get('/test-auth', (req, res) => {
+  console.log('Test auth endpoint called');
+  console.log('Cookies:', req.cookies);
+  console.log('Headers:', {
+    authorization: req.headers.authorization,
+    cookie: req.headers.cookie,
+    origin: req.headers.origin
+  });
+  res.json({ 
+    message: 'Test endpoint working',
+    cookies: req.cookies,
+    hasToken: !!(req.cookies.token || req.headers.authorization)
+  });
+});
+
 // User routes
+router.get('/me', authenticate, userController.getMe);
 router.get('/:userId', authenticate, userController.getUser);
 router.put('/:userId', authenticate, updateUserSchema, validateRequest, userController.updateUser);
 router.delete('/:userId', authenticate, userController.deleteUser);
