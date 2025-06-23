@@ -9,10 +9,19 @@ const { sendToQueue, consumeQueue } = require('./utils/rabbitmq.util');
 const pool = require('../../common/src/config/database');
 const axios = require('axios');
 
-// Import routes
+// Import routes with diagnostic logging
+console.log('[Shop Service] Loading routes...');
+console.log('[Shop Service] Requiring shop.routes.js...');
 const shopRoutes = require('./routes/shop.routes');
+console.log('[Shop Service] shop.routes.js loaded successfully.');
+
+console.log('[Shop Service] Requiring order.routes.js...');
 const orderRoutes = require('./routes/order.routes');
+console.log('[Shop Service] order.routes.js loaded successfully.');
+
+console.log('[Shop Service] Requiring payment.routes.js...');
 const paymentRoutes = require('./routes/payment.routes');
+console.log('[Shop Service] payment.routes.js loaded successfully.');
 
 // Import middleware
 const { errorHandler } = require('./middleware/error.middleware');
