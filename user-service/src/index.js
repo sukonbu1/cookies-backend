@@ -21,6 +21,7 @@ app.use(helmet({
 // CORS configuration
 const allowedOrigins = [
   'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
+  'https://cookies2-next.vercel.app',                // Friend's Vercel deployment
   process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
   'http://localhost:3002',                             // Local shop service
   'http://103.253.145.7:3002',                         // Production shop service
@@ -38,7 +39,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
       console.log('Request with no origin - allowing');
       return callback(null, true);
@@ -46,7 +46,6 @@ app.use(cors({
     
     console.log('CORS check for origin:', origin);
     
-    // More permissive for development - allow localhost to connect to production
     if (allowedOrigins.indexOf(origin) !== -1 || 
         origin.startsWith('http://localhost:') || 
         origin.startsWith('https://localhost:')) {

@@ -14,14 +14,14 @@ app.use(helmet());
 
 // CORS configuration
 const allowedOrigins = [
-  'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
-  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
-  'http://localhost:3001',                             // Local user service
-  'http://localhost:3002',                             // Local shop service
-  'http://103.253.145.7:3001',                         // Production user service
-  'http://103.253.145.7:3002',                         // Production shop service
-  'http://localhost:5173',                             // Vite dev server
-  'http://localhost:8080',                             // Additional dev port
+  'https://cookies-next-mwpp.vercel.app',              
+  'https://cookies2-next.vercel.app',               
+  process.env.CORS_ORIGIN || 'http://localhost:3000',  
+  'http://localhost:3002',                            
+  'http://103.253.145.7:3002',                        
+  'http://localhost:3001',                            
+  'http://localhost:5173',                            
+  'http://localhost:8080',                             
   'https://localhost:3000',                            // HTTPS local frontend
   'https://localhost:3001',                            // HTTPS local user service
   'https://localhost:5173',                            // HTTPS Vite dev server
@@ -33,7 +33,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
       console.log('Request with no origin - allowing');
       return callback(null, true);
@@ -41,7 +40,7 @@ app.use(cors({
     
     console.log('CORS check for origin:', origin);
     
-    // More permissive for development - allow localhost to connect to production
+    
     if (allowedOrigins.indexOf(origin) !== -1 || 
         origin.startsWith('http://localhost:') || 
         origin.startsWith('https://localhost:')) {

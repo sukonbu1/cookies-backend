@@ -32,11 +32,11 @@ const app = express();
 // Middleware
 const allowedOrigins = [
   'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
+  'https://cookies2-next.vercel.app',                // Friend's Vercel deployment
   process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
-  'http://localhost:3001',                             // Local user service
   'http://localhost:3002',                             // Local shop service
-  'http://103.253.145.7:3001',                         // Production user service
   'http://103.253.145.7:3002',                         // Production shop service
+  'http://localhost:3001',                             // Local user service
   'http://localhost:5173',                             // Vite dev server
   'http://localhost:8080',                             // Additional dev port
   'https://localhost:3000',                            // HTTPS local frontend
