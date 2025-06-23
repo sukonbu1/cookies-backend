@@ -14,6 +14,7 @@ const postValidation = [
 
 // Routes
 router.get('/', postController.getAllPosts);
+router.get('/user/:userId', postController.getUserPosts);
 router.get('/:id', postController.getPostById);
 router.post('/', 
   authMiddleware.verifyToken,

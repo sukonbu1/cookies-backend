@@ -57,6 +57,47 @@ class PostController {
     }
   }
 
+  async getUserPosts(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
+
+      // Try to get from cache first
+      const cacheKey = `user:${userId}:posts:${page}:${limit}`;
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.json(JSON.parse(cached));
+      }
+
+      const posts = await Post.findByUserId(userId, limit, offset);
+      
+      // Cache the result
+      await redis.set(cacheKey, JSON.stringify({ 
+        status: 'success', 
+        data: posts,
+        pagination: {
+          page,
+          limit,
+          offset
+        }
+      }), 'EX', CACHE_TTL);
+
+      res.json({ 
+        status: 'success', 
+        data: posts,
+        pagination: {
+          page,
+          limit,
+          offset
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updatePost(req, res, next) {
     try {
       const { id } = req.params;
@@ -153,7 +194,7 @@ class PostController {
       }
       const mediaRecords = [];
       for (const file of files) {
-        const mediaUrl = `/uploads/${file.filename}`;
+        const mediaUrl = file.path;
         const mediaType = file.mimetype.startsWith('image') ? 'image' : 'video';
         const media = await PostMedia.create({
           post_id: postId,

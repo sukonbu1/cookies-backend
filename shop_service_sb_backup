@@ -1,0 +1,827 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 17.5
+-- Dumped by pg_dump version 17.5
+
+-- Started on 2025-06-19 18:30:46
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 227 (class 1255 OID 16779)
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_updated_at_column() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 225 (class 1259 OID 17259)
+-- Name: orderitems; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.orderitems (
+    order_item_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    shop_id uuid NOT NULL,
+    quantity integer NOT NULL,
+    unit_price numeric(10,2) NOT NULL,
+    total_price numeric(12,2) NOT NULL,
+    discount_amount numeric(10,2) DEFAULT 0.00,
+    tax_amount numeric(10,2) DEFAULT 0.00,
+    status character varying(15) DEFAULT 'pending'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT orderitems_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'processing'::character varying, 'shipped'::character varying, 'delivered'::character varying, 'cancelled'::character varying, 'refunded'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.orderitems OWNER TO postgres;
+
+--
+-- TOC entry 224 (class 1259 OID 17229)
+-- Name: orders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.orders (
+    order_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id text NOT NULL,
+    order_number character varying(50) NOT NULL,
+    total_amount numeric(12,2) NOT NULL,
+    subtotal numeric(12,2) NOT NULL,
+    tax_amount numeric(10,2) DEFAULT 0.00,
+    shipping_amount numeric(10,2) DEFAULT 0.00,
+    discount_amount numeric(10,2) DEFAULT 0.00,
+    currency character varying(3) DEFAULT 'USD'::character varying,
+    payment_method character varying(50),
+    payment_status character varying(15) DEFAULT 'pending'::character varying,
+    shipping_method character varying(100),
+    shipping_status character varying(15) DEFAULT 'pending'::character varying,
+    order_status character varying(15) DEFAULT 'pending'::character varying,
+    tracking_number character varying(100),
+    notes text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    completed_at timestamp without time zone,
+    CONSTRAINT orders_order_status_check CHECK (((order_status)::text = ANY ((ARRAY['pending'::character varying, 'processing'::character varying, 'completed'::character varying, 'cancelled'::character varying, 'refunded'::character varying])::text[]))),
+    CONSTRAINT orders_payment_status_check CHECK (((payment_status)::text = ANY ((ARRAY['pending'::character varying, 'paid'::character varying, 'failed'::character varying, 'refunded'::character varying])::text[]))),
+    CONSTRAINT orders_shipping_status_check CHECK (((shipping_status)::text = ANY ((ARRAY['pending'::character varying, 'processing'::character varying, 'shipped'::character varying, 'delivered'::character varying, 'cancelled'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.orders OWNER TO postgres;
+
+--
+-- TOC entry 226 (class 1259 OID 17290)
+-- Name: payments; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.payments (
+    payment_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    amount numeric(12,2) NOT NULL,
+    payment_method character varying(50),
+    status character varying(15) DEFAULT 'pending'::character varying,
+    transaction_id character varying(100),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT payments_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'completed'::character varying, 'failed'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.payments OWNER TO postgres;
+
+--
+-- TOC entry 219 (class 1259 OID 17108)
+-- Name: productcategories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productcategories (
+    category_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    parent_id uuid,
+    name character varying(100) NOT NULL,
+    slug character varying(100) NOT NULL,
+    description text,
+    icon_url character varying(255),
+    image_url character varying(255),
+    level integer DEFAULT 0,
+    "position" integer DEFAULT 0,
+    product_count integer DEFAULT 0,
+    status character varying(15) DEFAULT 'active'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT productcategories_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.productcategories OWNER TO postgres;
+
+--
+-- TOC entry 222 (class 1259 OID 17178)
+-- Name: productcategorization; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productcategorization (
+    product_category_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    product_id uuid NOT NULL,
+    category_id uuid NOT NULL,
+    is_primary boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.productcategorization OWNER TO postgres;
+
+--
+-- TOC entry 221 (class 1259 OID 17161)
+-- Name: productimages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productimages (
+    image_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    product_id uuid NOT NULL,
+    image_url character varying(255) NOT NULL,
+    thumbnail_url character varying(255),
+    alt_text character varying(255),
+    "position" integer DEFAULT 0,
+    is_primary boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.productimages OWNER TO postgres;
+
+--
+-- TOC entry 223 (class 1259 OID 17199)
+-- Name: productreviews; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productreviews (
+    review_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    product_id uuid NOT NULL,
+    user_id text NOT NULL,
+    order_item_id uuid,
+    rating integer NOT NULL,
+    title character varying(255),
+    content text,
+    likes_count integer DEFAULT 0,
+    media_urls jsonb,
+    is_verified_purchase boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    status character varying(15) DEFAULT 'pending'::character varying,
+    CONSTRAINT productreviews_rating_check CHECK (((rating >= 1) AND (rating <= 5))),
+    CONSTRAINT productreviews_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.productreviews OWNER TO postgres;
+
+--
+-- TOC entry 220 (class 1259 OID 17132)
+-- Name: products; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.products (
+    product_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shop_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    slug character varying(255) NOT NULL,
+    description text,
+    price numeric(10,2) NOT NULL,
+    sale_price numeric(10,2),
+    currency character varying(3) DEFAULT 'USD'::character varying,
+    stock_quantity integer DEFAULT 0,
+    sku character varying(100),
+    weight numeric(10,2),
+    weight_unit character varying(10),
+    dimensions character varying(50),
+    condition_status character varying(15) DEFAULT 'new'::character varying,
+    is_featured boolean DEFAULT false,
+    rating numeric(3,2) DEFAULT 0.00,
+    total_reviews integer DEFAULT 0,
+    total_sales integer DEFAULT 0,
+    status character varying(20) DEFAULT 'active'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT products_condition_status_check CHECK (((condition_status)::text = ANY ((ARRAY['new'::character varying, 'used'::character varying, 'refurbished'::character varying])::text[]))),
+    CONSTRAINT products_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying, 'out_of_stock'::character varying, 'discontinued'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.products OWNER TO postgres;
+
+--
+-- TOC entry 218 (class 1259 OID 17085)
+-- Name: shops; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.shops (
+    shop_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id text NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    logo_url character varying(255),
+    cover_photo_url character varying(255),
+    contact_email character varying(100),
+    contact_phone character varying(20),
+    address text,
+    city character varying(100),
+    country character varying(100),
+    postal_code character varying(20),
+    business_registration character varying(100),
+    rating numeric(3,2) DEFAULT 0.00,
+    total_reviews integer DEFAULT 0,
+    is_verified boolean DEFAULT false,
+    status character varying(15) DEFAULT 'active'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT shops_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying, 'suspended'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.shops OWNER TO postgres;
+
+--
+-- TOC entry 217 (class 1259 OID 17073)
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    id text NOT NULL,
+    email character varying(255) NOT NULL,
+    name character varying(255),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- TOC entry 5067 (class 0 OID 17259)
+-- Dependencies: 225
+-- Data for Name: orderitems; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.orderitems (order_item_id, order_id, product_id, shop_id, quantity, unit_price, total_price, discount_amount, tax_amount, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5066 (class 0 OID 17229)
+-- Dependencies: 224
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.orders (order_id, user_id, order_number, total_amount, subtotal, tax_amount, shipping_amount, discount_amount, currency, payment_method, payment_status, shipping_method, shipping_status, order_status, tracking_number, notes, created_at, updated_at, completed_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5068 (class 0 OID 17290)
+-- Dependencies: 226
+-- Data for Name: payments; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.payments (payment_id, order_id, amount, payment_method, status, transaction_id, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5061 (class 0 OID 17108)
+-- Dependencies: 219
+-- Data for Name: productcategories; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.productcategories (category_id, parent_id, name, slug, description, icon_url, image_url, level, "position", product_count, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5064 (class 0 OID 17178)
+-- Dependencies: 222
+-- Data for Name: productcategorization; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.productcategorization (product_category_id, product_id, category_id, is_primary, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5063 (class 0 OID 17161)
+-- Dependencies: 221
+-- Data for Name: productimages; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.productimages (image_id, product_id, image_url, thumbnail_url, alt_text, "position", is_primary, created_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5065 (class 0 OID 17199)
+-- Dependencies: 223
+-- Data for Name: productreviews; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.productreviews (review_id, product_id, user_id, order_item_id, rating, title, content, likes_count, media_urls, is_verified_purchase, created_at, updated_at, status) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5062 (class 0 OID 17132)
+-- Dependencies: 220
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.products (product_id, shop_id, name, slug, description, price, sale_price, currency, stock_quantity, sku, weight, weight_unit, dimensions, condition_status, is_featured, rating, total_reviews, total_sales, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5060 (class 0 OID 17085)
+-- Dependencies: 218
+-- Data for Name: shops; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.shops (shop_id, user_id, name, description, logo_url, cover_photo_url, contact_email, contact_phone, address, city, country, postal_code, business_registration, rating, total_reviews, is_verified, status, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 5059 (class 0 OID 17073)
+-- Dependencies: 217
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users (id, email, name, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4890 (class 2606 OID 17270)
+-- Name: orderitems orderitems_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orderitems
+    ADD CONSTRAINT orderitems_pkey PRIMARY KEY (order_item_id);
+
+
+--
+-- TOC entry 4883 (class 2606 OID 17250)
+-- Name: orders orders_order_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_order_number_key UNIQUE (order_number);
+
+
+--
+-- TOC entry 4885 (class 2606 OID 17248)
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (order_id);
+
+
+--
+-- TOC entry 4893 (class 2606 OID 17298)
+-- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_pkey PRIMARY KEY (payment_id);
+
+
+--
+-- TOC entry 4858 (class 2606 OID 17122)
+-- Name: productcategories productcategories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategories
+    ADD CONSTRAINT productcategories_pkey PRIMARY KEY (category_id);
+
+
+--
+-- TOC entry 4860 (class 2606 OID 17124)
+-- Name: productcategories productcategories_slug_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategories
+    ADD CONSTRAINT productcategories_slug_key UNIQUE (slug);
+
+
+--
+-- TOC entry 4871 (class 2606 OID 17185)
+-- Name: productcategorization productcategorization_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategorization
+    ADD CONSTRAINT productcategorization_pkey PRIMARY KEY (product_category_id);
+
+
+--
+-- TOC entry 4873 (class 2606 OID 17187)
+-- Name: productcategorization productcategorization_product_id_category_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategorization
+    ADD CONSTRAINT productcategorization_product_id_category_id_key UNIQUE (product_id, category_id);
+
+
+--
+-- TOC entry 4868 (class 2606 OID 17171)
+-- Name: productimages productimages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productimages
+    ADD CONSTRAINT productimages_pkey PRIMARY KEY (image_id);
+
+
+--
+-- TOC entry 4877 (class 2606 OID 17213)
+-- Name: productreviews productreviews_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productreviews
+    ADD CONSTRAINT productreviews_pkey PRIMARY KEY (review_id);
+
+
+--
+-- TOC entry 4879 (class 2606 OID 17215)
+-- Name: productreviews productreviews_user_id_product_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productreviews
+    ADD CONSTRAINT productreviews_user_id_product_id_key UNIQUE (user_id, product_id);
+
+
+--
+-- TOC entry 4865 (class 2606 OID 17151)
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (product_id);
+
+
+--
+-- TOC entry 4855 (class 2606 OID 17099)
+-- Name: shops shops_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shops
+    ADD CONSTRAINT shops_pkey PRIMARY KEY (shop_id);
+
+
+--
+-- TOC entry 4849 (class 2606 OID 17083)
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- TOC entry 4851 (class 2606 OID 17081)
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4869 (class 1259 OID 17198)
+-- Name: idx_category_products; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_category_products ON public.productcategorization USING btree (category_id);
+
+
+--
+-- TOC entry 4886 (class 1259 OID 17286)
+-- Name: idx_order_items; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_order_items ON public.orderitems USING btree (order_id);
+
+
+--
+-- TOC entry 4880 (class 1259 OID 17257)
+-- Name: idx_order_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_order_status ON public.orders USING btree (order_status);
+
+
+--
+-- TOC entry 4856 (class 1259 OID 17130)
+-- Name: idx_parent_category; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_parent_category ON public.productcategories USING btree (parent_id);
+
+
+--
+-- TOC entry 4891 (class 1259 OID 17304)
+-- Name: idx_payment_orders; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_payment_orders ON public.payments USING btree (order_id);
+
+
+--
+-- TOC entry 4866 (class 1259 OID 17177)
+-- Name: idx_product_images; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_images ON public.productimages USING btree (product_id);
+
+
+--
+-- TOC entry 4887 (class 1259 OID 17287)
+-- Name: idx_product_orders; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_orders ON public.orderitems USING btree (product_id);
+
+
+--
+-- TOC entry 4874 (class 1259 OID 17226)
+-- Name: idx_product_reviews; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_reviews ON public.productreviews USING btree (product_id);
+
+
+--
+-- TOC entry 4861 (class 1259 OID 17158)
+-- Name: idx_product_slug; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_slug ON public.products USING btree (slug);
+
+
+--
+-- TOC entry 4862 (class 1259 OID 17159)
+-- Name: idx_product_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_product_status ON public.products USING btree (status);
+
+
+--
+-- TOC entry 4888 (class 1259 OID 17288)
+-- Name: idx_shop_orders; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_shop_orders ON public.orderitems USING btree (shop_id);
+
+
+--
+-- TOC entry 4863 (class 1259 OID 17157)
+-- Name: idx_shop_products; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_shop_products ON public.products USING btree (shop_id);
+
+
+--
+-- TOC entry 4852 (class 1259 OID 17106)
+-- Name: idx_shop_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_shop_status ON public.shops USING btree (status);
+
+
+--
+-- TOC entry 4881 (class 1259 OID 17256)
+-- Name: idx_user_orders; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_orders ON public.orders USING btree (user_id);
+
+
+--
+-- TOC entry 4875 (class 1259 OID 17227)
+-- Name: idx_user_reviews; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_reviews ON public.productreviews USING btree (user_id);
+
+
+--
+-- TOC entry 4853 (class 1259 OID 17105)
+-- Name: idx_user_shop; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_shop ON public.shops USING btree (user_id);
+
+
+--
+-- TOC entry 4913 (class 2620 OID 17289)
+-- Name: orderitems update_orderitems_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_orderitems_updated_at BEFORE UPDATE ON public.orderitems FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4912 (class 2620 OID 17258)
+-- Name: orders update_orders_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4909 (class 2620 OID 17131)
+-- Name: productcategories update_productcategories_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_productcategories_updated_at BEFORE UPDATE ON public.productcategories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4911 (class 2620 OID 17228)
+-- Name: productreviews update_productreviews_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_productreviews_updated_at BEFORE UPDATE ON public.productreviews FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4910 (class 2620 OID 17160)
+-- Name: products update_products_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4908 (class 2620 OID 17107)
+-- Name: shops update_shops_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_shops_updated_at BEFORE UPDATE ON public.shops FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4907 (class 2620 OID 17084)
+-- Name: users update_users_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- TOC entry 4903 (class 2606 OID 17271)
+-- Name: orderitems orderitems_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orderitems
+    ADD CONSTRAINT orderitems_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4904 (class 2606 OID 17276)
+-- Name: orderitems orderitems_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orderitems
+    ADD CONSTRAINT orderitems_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id) ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 4905 (class 2606 OID 17281)
+-- Name: orderitems orderitems_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orderitems
+    ADD CONSTRAINT orderitems_shop_id_fkey FOREIGN KEY (shop_id) REFERENCES public.shops(shop_id) ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 4902 (class 2606 OID 17251)
+-- Name: orders orders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 4906 (class 2606 OID 17299)
+-- Name: payments payments_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4895 (class 2606 OID 17125)
+-- Name: productcategories productcategories_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategories
+    ADD CONSTRAINT productcategories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.productcategories(category_id) ON DELETE SET NULL;
+
+
+--
+-- TOC entry 4898 (class 2606 OID 17193)
+-- Name: productcategorization productcategorization_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategorization
+    ADD CONSTRAINT productcategorization_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.productcategories(category_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4899 (class 2606 OID 17188)
+-- Name: productcategorization productcategorization_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productcategorization
+    ADD CONSTRAINT productcategorization_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4897 (class 2606 OID 17172)
+-- Name: productimages productimages_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productimages
+    ADD CONSTRAINT productimages_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4900 (class 2606 OID 17216)
+-- Name: productreviews productreviews_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productreviews
+    ADD CONSTRAINT productreviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4901 (class 2606 OID 17221)
+-- Name: productreviews productreviews_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.productreviews
+    ADD CONSTRAINT productreviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
+
+
+--
+-- TOC entry 4896 (class 2606 OID 17152)
+-- Name: products products_shop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_shop_id_fkey FOREIGN KEY (shop_id) REFERENCES public.shops(shop_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4894 (class 2606 OID 17100)
+-- Name: shops shops_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.shops
+    ADD CONSTRAINT shops_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
+
+
+-- Completed on 2025-06-19 18:30:46
+
+--
+-- PostgreSQL database dump complete
+--
+

@@ -4,15 +4,66 @@ const axios = require('axios');
 
 // Helper to fetch user info from user-service
 async function fetchUserInfoFromUserService(user_id, token) {
-  const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001/api/users';
+  const userServiceUrl = process.env.USER_SERVICE_URL || 'http://localhost:3001';
   try {
-    const response = await axios.get(`${userServiceUrl}/${user_id}`, {
-      headers: { Cookie: `token=${token}` }
+    // Check if the URL already includes /api/users
+    const baseUrl = userServiceUrl.includes('/api/users') ? userServiceUrl : `${userServiceUrl}/api/users`;
+    const fullUrl = `${baseUrl}/${user_id}`;
+    
+    console.log('Fetching user info with:', {
+      url: fullUrl,
+      token: token ? 'Token exists' : 'No token',
+      userId: user_id
     });
-    return response.data.data || response.data;
+
+    if (!token) {
+      throw new Error('No authentication token provided');
+    }
+
+    // Create a new axios instance with proper headers
+    const response = await axios.get(fullUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Cookie: `token=${token}`  // Keep cookie for backward compatibility
+      },
+      withCredentials: true
+    });
+
+    console.log('User service response:', {
+      status: response.status,
+      hasData: !!response.data
+    });
+
+    if (!response.data) {
+      throw new Error('Empty response from user-service');
+    }
+
+    const userData = response.data.data || response.data;
+    if (!userData || !userData.email) {
+      throw new Error('Invalid user data received from user-service');
+    }
+
+    return userData;
   } catch (err) {
-    console.error('Failed to fetch user info:', err.message);
-    return null;
+    console.error('Failed to fetch user info:', {
+      error: err.message,
+      status: err.response?.status,
+      data: err.response?.data
+    });
+
+    if (err.code === 'ECONNREFUSED') {
+      throw new Error(`Cannot connect to user-service at ${userServiceUrl}`);
+    }
+    if (err.response?.status === 401) {
+      throw new Error('Authentication failed with user-service - invalid or expired token');
+    }
+    if (err.response?.status === 404) {
+      throw new Error(`User ${user_id} not found in user-service`);
+    }
+    if (err.response?.status === 403) {
+      throw new Error('CORS error - user-service rejected the request');
+    }
+    throw new Error(`Failed to fetch user info: ${err.message}`);
   }
 }
 

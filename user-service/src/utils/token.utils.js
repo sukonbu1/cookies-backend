@@ -89,12 +89,25 @@ class TokenUtils {
    * @param {string} token - Firebase token
    */
   static setAuthCookie(res, token) {
-    res.cookie('token', token, {
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+      secure: true, // Always secure for HTTPS
+      sameSite: 'None', // Allow cross-site requests
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/', // Ensure cookie is available across all paths
+      domain: process.env.COOKIE_DOMAIN // Optional: set if you have a specific domain
+    };
+
+    // Remove domain if not set in environment
+    if (!process.env.COOKIE_DOMAIN) {
+      delete cookieOptions.domain;
+    }
+
+    console.log('Setting auth cookie with options:', cookieOptions);
+    
+    res.cookie('token', token, cookieOptions);
+    
+    console.log('Auth cookie set successfully');
   }
 
   /**
