@@ -25,24 +25,31 @@ const app = express();
 
 // Middleware
 const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Frontend
+  'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
+  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
   'http://localhost:3001',                             // Local user service
   'http://localhost:3002',                             // Local shop service
-  'http://103.253.145.7:3001',                        // Production user service
-  'http://103.253.145.7:3002'                         // Production shop service
+  'http://103.253.145.7:3001',                         // Production user service
+  'http://103.253.145.7:3002',                         // Production shop service
+  'http://localhost:5173',                             // Vite dev server
+  'http://localhost:8080',                             // Additional dev port
+  'https://localhost:3000',                            // HTTPS local frontend
+  'https://localhost:5173'                             // HTTPS Vite dev server
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('CORS not allowed'));
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie']
 }));
 app.use(helmet());
 app.use(morgan('dev'));
