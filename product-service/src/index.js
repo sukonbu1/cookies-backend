@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '/home/cookies-backend/product-service/.env' });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
