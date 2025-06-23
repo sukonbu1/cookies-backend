@@ -31,8 +31,8 @@ const statusValidation = [
 
 // Routes
 router.get('/', shopController.getAllShops);
-router.get('/:id', idValidation, validateRequest, shopController.getShopById);
 router.post('/', authMiddleware.verifyToken, shopValidation, shopController.createShop);
+router.get('/:id', idValidation, validateRequest, shopController.getShopById);
 router.put('/:id', authMiddleware.verifyToken, idValidation.concat(shopValidation), shopController.updateShop);
 router.delete('/:id', authMiddleware.verifyToken, idValidation, validateRequest, shopController.deleteShop);
 router.patch('/:id/status', authMiddleware.verifyToken, statusValidation, shopController.updateShopStatus);

@@ -18,8 +18,8 @@ const idValidation = [
 
 // Routes
 router.get('/', authMiddleware.verifyToken, orderController.getAllOrders);
-router.get('/:id', authMiddleware.verifyToken, idValidation, orderController.getOrderById);
 router.post('/', authMiddleware.verifyToken, orderValidation, orderController.createOrder);
+router.get('/:id', authMiddleware.verifyToken, idValidation, orderController.getOrderById);
 router.put('/:id', authMiddleware.verifyToken, idValidation.concat(orderValidation), orderController.updateOrder);
 router.delete('/:id', authMiddleware.verifyToken, idValidation, orderController.deleteOrder);
 
