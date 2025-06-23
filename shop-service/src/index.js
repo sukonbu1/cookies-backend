@@ -96,9 +96,9 @@ console.log('Registering order routes...');
 app.use('/api/orders', orderRoutes);
 console.log('Order routes registered successfully.');
 
-console.log('Registering payment routes...');
-app.use('/api/payments', paymentRoutes);
-console.log('Payment routes registered successfully.');
+console.log('Registering payment routes (temporarily disabled for debugging)...');
+// app.use('/api/payments', paymentRoutes);
+// console.log('Payment routes registered successfully.');
 
 // Health check endpoint
 app.get('/health', (req, res) => {
