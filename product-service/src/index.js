@@ -112,6 +112,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Product service is running on port ${PORT}`);
 });
 
+// Start background processors
+require('./utils/rabbitmq.util').startOrderProcessor();
+
 process.on('SIGINT', async () => {
   await require('./utils/rabbitmq.util').close();
   process.exit(0);
