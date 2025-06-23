@@ -34,22 +34,41 @@ const allowedOrigins = [
   'http://localhost:5173',                             // Vite dev server
   'http://localhost:8080',                             // Additional dev port
   'https://localhost:3000',                            // HTTPS local frontend
-  'https://localhost:5173'                             // HTTPS Vite dev server
+  'https://localhost:3001',                            // HTTPS local user service
+  'https://localhost:5173',                            // HTTPS Vite dev server
+  // Allow localhost to connect to production server
+  'http://localhost:3000',                             // Local frontend to production backend
+  'http://localhost:3001',                             // Local frontend to production backend
+  'http://localhost:5173'                              // Local frontend to production backend
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (!origin) {
+      console.log('Request with no origin - allowing');
+      return callback(null, true);
     }
+    
+    console.log('CORS check for origin:', origin);
+    
+    // More permissive for development - allow localhost to connect to production
+    if (allowedOrigins.indexOf(origin) !== -1 || 
+        origin.startsWith('http://localhost:') || 
+        origin.startsWith('https://localhost:')) {
+      console.log('CORS origin allowed:', origin);
+      return callback(null, true);
+    }
+    
+    console.log('CORS origin not allowed:', origin);
+    return callback(new Error('CORS not allowed'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Set-Cookie']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Set-Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use(helmet());
 app.use(morgan('dev'));
@@ -57,6 +76,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Routes
 app.use('/api/products', productRoutes);
