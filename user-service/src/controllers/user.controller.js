@@ -133,24 +133,17 @@ class UserController {
           email: decodedToken.email,
           username: username,
           avatar_url: user.photoURL || decodedToken.picture,
-          email_verified: decodedToken.email_verified,
-          provider: 'google',
           status: 'active'
         });
       } else {
         // Update existing user info if needed
         const updates = {};
-        // Remove displayName logic, just update username if needed
         if (user.username && user.username !== existingUser.username) {
           updates.username = user.username;
         }
         if (user.photoURL && user.photoURL !== existingUser.avatar_url) {
           updates.avatar_url = user.photoURL;
         }
-        if (decodedToken.email_verified !== existingUser.email_verified) {
-          updates.email_verified = decodedToken.email_verified;
-        }
-        
         if (Object.keys(updates).length > 0) {
           existingUser = await User.update(decodedToken.uid, updates);
         }
@@ -163,8 +156,7 @@ class UserController {
       // Create custom token for the user
       const customToken = await TokenUtils.createCustomToken(decodedToken.uid, {
         email: existingUser.email,
-        role: existingUser.role || 'user',
-        provider: 'google'
+        role: existingUser.role || 'user'
       });
   
       // Set auth cookie
