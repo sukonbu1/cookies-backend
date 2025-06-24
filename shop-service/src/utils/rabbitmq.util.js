@@ -32,5 +32,5 @@ module.exports = {
   sendToQueue: (queue, message, options) => rabbitMQClient.sendToQueue(queue, message, options),
   consumeQueue: (queue, callback, deadLetterConfig) => rabbitMQClient.consumeQueue(queue, callback, deadLetterConfig),
   close: () => rabbitMQClient.close(),
-  startOrderProcessor, // Add this export
+  startOrderProcessor, 
 };

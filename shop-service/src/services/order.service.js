@@ -20,6 +20,7 @@ class OrderService {
   static async deleteOrder(orderId) {
     return Order.delete(orderId);
   }
+  
 }
 
 module.exports = OrderService; 

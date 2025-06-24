@@ -123,7 +123,7 @@ class TokenUtils {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',  // Changed from 'strict' to 'lax' for cross-site requests
+      sameSite: 'None', 
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
   }
