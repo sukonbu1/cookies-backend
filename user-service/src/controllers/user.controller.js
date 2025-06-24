@@ -140,8 +140,9 @@ class UserController {
       } else {
         // Update existing user info if needed
         const updates = {};
-        if (user.displayName && user.displayName !== existingUser.display_name) {
-          updates.display_name = user.displayName;
+        // Remove displayName logic, just update username if needed
+        if (user.username && user.username !== existingUser.username) {
+          updates.username = user.username;
         }
         if (user.photoURL && user.photoURL !== existingUser.profile_picture) {
           updates.profile_picture = user.photoURL;
