@@ -1,1 +1,52 @@
-node_modules
+# Ignore everything by default
+/*
+
+# But NOT these folders (negate the ignore)
+!user-service/
+!post-service/
+!shop-service/
+!product-service/
+!common/
+
+# Allow the .gitignore itself
+!.gitignore
+
+# Keep important root files
+!README.md
+!docker-compose.yml
+!package.json
+!package-lock.json
+
+# Ignore specific files/folders within allowed directories
+user-service/uploads/
+user-service/node_modules/
+post-service/uploads/
+post-service/node_modules/
+shop-service/uploads/
+shop-service/node_modules/
+product-service/uploads/
+product-service/node_modules/
+common/node_modules/
+
+# Ignore environment files
+**/.env
+**/.env.local
+**/.env.production
+
+# Ignore logs
+**/logs/
+**/*.log
+
+# Ignore temporary files
+**/tmp/
+**/temp/
+
+# Ignore IDE files
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+
+# Ignore OS files
+**/.DS_Store
+**/Thumbs.db
