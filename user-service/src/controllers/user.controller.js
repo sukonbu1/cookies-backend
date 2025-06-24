@@ -132,7 +132,6 @@ class UserController {
           user_id: decodedToken.uid,
           email: decodedToken.email,
           username: username,
-          display_name: user.displayName || decodedToken.name,
           profile_picture: user.photoURL || decodedToken.picture,
           email_verified: decodedToken.email_verified,
           provider: 'google',
