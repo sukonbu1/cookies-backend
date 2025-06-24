@@ -9,7 +9,7 @@ const User = require('../models/user.model');
 
 // Validation schemas
 const registerSchema = [
-  body('username').trim().isLength({ min: 3, max: 50 }),
+  body('username').optional().trim().isLength({ min: 3, max: 50 }),
   body('email').isEmail(),
   body('password').isLength({ min: 6 }),
   body('phone_number').optional().isMobilePhone(),
@@ -21,8 +21,15 @@ const registerSchema = [
 ];
 
 const loginSchema = [
-  body('email').isEmail(),
-  body('password').isLength({ min: 6 })
+  body('email').optional().isEmail(),
+  body('username').optional().trim().isLength({ min: 3, max: 50 }),
+  body('password').isLength({ min: 6 }),
+  body().custom((value, { req }) => {
+    if (!value.email && !value.username) {
+      throw new Error('Either email or username is required');
+    }
+    return true;
+  })
 ];
 
 const updateUserSchema = [

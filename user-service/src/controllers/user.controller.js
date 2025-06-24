@@ -9,12 +9,18 @@ const CACHE_TTL = 300; // 5 minutes
 class UserController {
   async register(req, res, next) {
     try {
-      const { email, password, ...userData } = req.body;
+      const { email, password, username, ...userData } = req.body;
       
       // Check if user already exists
       const existingUser = await User.findByEmail(email);
       if (existingUser) {
         return res.status(409).json({ message: 'Email already registered' });
+      }
+
+      // Generate username from email if not provided
+      let finalUsername = username;
+      if (!finalUsername && email) {
+        finalUsername = User.generateUsernameFromEmail(email);
       }
 
       // Create user in Firebase
@@ -29,6 +35,7 @@ class UserController {
       const user = await User.create({
         user_id: userRecord.uid,
         email,
+        username: finalUsername,
         ...userData
       });
 
@@ -48,17 +55,23 @@ class UserController {
 
   async login(req, res, next) {
     try {
-      const { email, password } = req.body;
+      const { email, username, password } = req.body;
   
-      // Sign in with Firebase
-      const userRecord = await admin.auth().getUserByEmail(email);
-      
-      // Get user profile from our database using Firebase UID
-      const user = await User.findById(userRecord.uid);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
+      // Check if user provided email or username
+      const identifier = email || username;
+      if (!identifier || !password) {
+        return res.status(400).json({ message: 'Email/username and password are required' });
       }
-  
+
+      // Find user by email or username
+      const user = await User.findByEmailOrUsername(identifier);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Get Firebase user record using the email from our database
+      const userRecord = await admin.auth().getUserByEmail(user.email);
+      
       if (user.status !== 'active') {
         return res.status(403).json({ message: 'Account is not active' });
       }
@@ -103,10 +116,22 @@ class UserController {
       let existingUser = await User.findById(decodedToken.uid);
       
       if (!existingUser) {
+        // Generate username from email if not provided
+        let username = user.username;
+        if (!username && decodedToken.email) {
+          username = User.generateUsernameFromEmail(decodedToken.email);
+        }
+
+        // Ensure we have a username
+        if (!username) {
+          throw new Error('Unable to generate username from email');
+        }
+
         // Create new user if doesn't exist
         existingUser = await User.create({
           user_id: decodedToken.uid,
           email: decodedToken.email,
+          username: username,
           display_name: user.displayName || decodedToken.name,
           profile_picture: user.photoURL || decodedToken.picture,
           email_verified: decodedToken.email_verified,
@@ -227,7 +252,6 @@ class UserController {
         email: req.user.email
       });
 
-      // Try to get from cache first
       const cachedUser = await redis.get(`user:${req.user.user_id}`);
       if (cachedUser) {
         console.log('User found in cache');

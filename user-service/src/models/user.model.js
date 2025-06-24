@@ -4,6 +4,17 @@ const bcrypt = require('bcryptjs');
 class User {
   static async create(userData) {
     try {
+      // Generate username from email if not provided
+      let username = userData.username;
+      if (!username && userData.email) {
+        username = this.generateUsernameFromEmail(userData.email);
+      }
+
+      // Ensure we have a username
+      if (!username) {
+        throw new Error('Username is required or email must be provided to generate username');
+      }
+
       const query = `
         INSERT INTO users (
           user_id, username, email, phone_number, bio, 
@@ -16,14 +27,14 @@ class User {
 
       const values = [
         userData.user_id,
-        userData.username,
+        username,
         userData.email,
-        userData.phone_number,
-        userData.bio,
-        userData.date_of_birth,
-        userData.gender,
-        userData.country,
-        userData.city,
+        userData.phone_number || null,
+        userData.bio || null,
+        userData.date_of_birth || null,
+        userData.gender || null,
+        userData.country || null,
+        userData.city || null,
         false,
         userData.is_chef || false,
         0,
@@ -31,8 +42,8 @@ class User {
         0,
         0,
         'active',
-        null,
-        null
+        userData.avatar_url || null,
+        userData.cover_photo_url || null
       ];
 
       const { rows } = await pool.query(query, values);
@@ -42,11 +53,46 @@ class User {
     }
   }
 
+  static generateUsernameFromEmail(email) {
+    // Extract username part from email and add random suffix
+    const emailPart = email.split('@')[0];
+    const randomSuffix = Math.floor(Math.random() * 1000);
+    return `${emailPart}${randomSuffix}`;
+  }
+
   static async findByEmail(email) {
     try {
       const query = 'SELECT * FROM users WHERE email = $1';
       const { rows } = await pool.query(query, [email]);
       return rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async findByUsername(username) {
+    try {
+      const query = 'SELECT * FROM users WHERE username = $1';
+      const { rows } = await pool.query(query, [username]);
+      return rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async findByEmailOrUsername(identifier) {
+    try {
+      // Check if identifier looks like an email
+      const isEmail = identifier.includes('@');
+      
+      if (isEmail) {
+        return await this.findByEmail(identifier);
+      } else {
+        // For username lookup, also check if it's null
+        const query = 'SELECT * FROM users WHERE username = $1 OR (username IS NULL AND email = $1)';
+        const { rows } = await pool.query(query, [identifier]);
+        return rows[0] || null;
+      }
     } catch (error) {
       throw error;
     }
