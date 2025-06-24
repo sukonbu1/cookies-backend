@@ -132,7 +132,7 @@ class UserController {
           user_id: decodedToken.uid,
           email: decodedToken.email,
           username: username,
-          profile_picture: user.photoURL || decodedToken.picture,
+          avatar_url: user.photoURL || decodedToken.picture,
           email_verified: decodedToken.email_verified,
           provider: 'google',
           status: 'active'
@@ -144,8 +144,8 @@ class UserController {
         if (user.username && user.username !== existingUser.username) {
           updates.username = user.username;
         }
-        if (user.photoURL && user.photoURL !== existingUser.profile_picture) {
-          updates.profile_picture = user.photoURL;
+        if (user.photoURL && user.photoURL !== existingUser.avatar_url) {
+          updates.avatar_url = user.photoURL;
         }
         if (decodedToken.email_verified !== existingUser.email_verified) {
           updates.email_verified = decodedToken.email_verified;
