@@ -38,6 +38,7 @@ const allowedOrigins = [
   'http://localhost:3000',                             // Local frontend to production backend
   'http://103.253.145.7',
   'https://103.253.145.7',
+  'http://103.253.145.7:5173',
 ];
 
 app.use(cors({
