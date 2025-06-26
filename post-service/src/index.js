@@ -28,7 +28,8 @@ const allowedOrigins = [
   // Allow localhost to connect to production server
   'http://localhost:3000',                             // Local frontend to production backend
   'http://localhost:3001',                             // Local frontend to production backend
-  'http://localhost:5173,',                              // Local frontend to production backend
+  'http://localhost:5173,',                            // Local frontend to production backend
+  'http://localhost:3000',                             // Local frontend to production backend
   'http://103.253.145.7',
   'https://103.253.145.7',
 ];
