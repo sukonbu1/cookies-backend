@@ -91,8 +91,7 @@ class TokenUtils {
   static setAuthCookie(res, token) {
     const cookieOptions = {
       httpOnly: true,
-      secure: true, // Always secure for HTTPS
-      sameSite: 'None', // Allow cross-site requests
+      sameSite: 'Lax', 
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/', // Ensure cookie is available across all paths
       domain: process.env.COOKIE_DOMAIN // Optional: set if you have a specific domain
