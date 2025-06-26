@@ -8,8 +8,7 @@ const uploadMiddleware = require('../middleware/uploadMiddleware');
 // Validation middleware
 const postValidation = [
   body('title').notEmpty().trim().escape(),
-  body('content').notEmpty().trim().escape(),
-  body('category').notEmpty().trim().escape()
+  body('description').notEmpty().trim().escape(),
 ];
 
 // Routes
@@ -59,5 +58,8 @@ router.post(
 // Share routes
 router.post('/:id/share', authMiddleware.verifyToken, postController.sharePost);
 router.get('/:id/shares', authMiddleware.verifyToken, postController.getPostShares);
+
+// Hashtag feed endpoint
+router.get('/hashtags/:name/posts', postController.getPostsByHashtag);
 
 module.exports = router; 

@@ -52,26 +52,8 @@ class RabbitMQClient {
 
 const rabbitMQClient = new RabbitMQClient();
 
-async function startOrderProcessor() {
-  console.log('Starting order processor for order-queue...');
-  await rabbitMQClient.consumeQueue('order-queue', async (message, msg) => {
-    try {
-      console.log('Processing order:', message);
-      // Add order processing logic here (e.g., update database, notify user-service)
-      await rabbitMQClient.channel.ack(msg);
-    } catch (err) {
-      console.error('Order processing failed:', err);
-      throw err; // Handled by consumeQueue's retry logic
-    }
-  }, {
-    maxRetries: MAX_RETRIES,
-    ttl: 30000, // 30 seconds TTL
-  });
-}
-
 module.exports = {
   sendToQueue: (queue, message, options) => rabbitMQClient.sendToQueue(queue, message, options),
   consumeQueue: (queue, callback, deadLetterConfig) => rabbitMQClient.consumeQueue(queue, callback, deadLetterConfig),
   close: () => rabbitMQClient.close(),
-  startOrderProcessor, 
-};
+}; 

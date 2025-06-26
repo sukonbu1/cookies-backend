@@ -5,8 +5,17 @@ const PostMedia = require('../models/post-media.model');
 const PostShare = require('../models/post-share.model');
 const redis = require('../../../common/src/config/redis');
 const { v4: uuidv4 } = require('uuid');
+const Hashtag = require('../models/hashtag.model');
+const rabbitmq = require('../utils/rabbitmq.util');
 
 const CACHE_TTL = 300; // 5 minutes
+
+// Utility to extract hashtags from text (e.g. #food)
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#(\w+)/g);
+  return matches ? matches.map(tag => tag.slice(1).toLowerCase()) : [];
+}
 
 class PostController {
   async createPost(req, res, next) {
@@ -27,7 +36,20 @@ class PostController {
         status,
         is_featured
       });
-      res.status(201).json({ status: 'success', data: post });
+      // Extract hashtags from content
+      const hashtags = extractHashtags(description);
+      if (hashtags.length > 0) {
+        await Hashtag.linkPostHashtags(post.post_id, hashtags);
+      }
+      // Emit event for post count update
+      await rabbitmq.sendToQueue('post-events', {
+        type: 'post_create',
+        userId: userId,
+        postId: post.post_id
+      });
+      // Attach hashtags to response
+      post.hashtags = hashtags;
+      res.status(201).json(post);
     } catch (error) {
       next(error);
     }
@@ -114,17 +136,30 @@ class PostController {
       }
       const post = await Post.update(id, userId, updates);
       if (!post) return res.status(404).json({ status: 'error', message: 'Post not found or unauthorized' });
+      // Remove old hashtags and add new ones
+      if (updates.description) {
+        const hashtags = extractHashtags(updates.description);
+        await Hashtag.linkPostHashtags(id, hashtags);
+        post.hashtags = hashtags;
+      }
       res.json({ status: 'success', data: post });
     } catch (error) {
       next(error);
     }
   }
+
   async deletePost(req, res, next) {
     try {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
       const deleted = await Post.delete(id, userId);
       if (!deleted) return res.status(404).json({ status: 'error', message: 'Post not found or unauthorized' });
+      // Emit event for post count update
+      await rabbitmq.sendToQueue('post-events', {
+        type: 'post_delete',
+        userId: userId,
+        postId: id
+      });
       res.json({ status: 'success', message: 'Post deleted successfully' });
     } catch (error) {
       next(error);
@@ -137,6 +172,11 @@ class PostController {
       const userId = req.user.uid || req.user.userId;
       const like = await PostLike.create(id, userId);
       await Post.updateCounts(id, 'likes', true);
+      // Emit event for like count update
+      await rabbitmq.sendToQueue('post-events', {
+        type: 'post_like',
+        postId: id
+      });
       res.json({ status: 'success', data: like });
     } catch (error) {
       next(error);
@@ -149,6 +189,11 @@ class PostController {
       const userId = req.user.uid || req.user.userId;
       const unliked = await PostLike.delete(id, userId);
       await Post.updateCounts(id, 'likes', false);
+      // Emit event for like count update
+      await rabbitmq.sendToQueue('post-events', {
+        type: 'post_unlike',
+        postId: id
+      });
       res.json({ status: 'success', message: 'Post unliked successfully', data: unliked });
     } catch (error) {
       next(error);
@@ -238,6 +283,17 @@ class PostController {
       const { id } = req.params;
       const shares = await PostShare.findByPostId(id);
       res.json({ status: 'success', data: shares });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPostsByHashtag(req, res, next) {
+    try {
+      const { name } = req.params;
+      const { limit = 20, offset = 0 } = req.query;
+      const posts = await Hashtag.getPostsByHashtag(name, limit, offset);
+      res.json(posts);
     } catch (error) {
       next(error);
     }

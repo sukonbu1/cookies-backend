@@ -2,6 +2,8 @@ const User = require('../models/user.model');
 const redis = require('../../../common/src/config/redis');
 const admin = require('../../../common/src/config/firebase');
 const TokenUtils = require('../utils/token.utils');
+const UserFollow = require('../models/user-follow.model');
+const rabbitmq = require('../utils/rabbitmq.util');
 
 // Cache TTL in seconds
 const CACHE_TTL = 300; // 5 minutes
@@ -189,15 +191,17 @@ class UserController {
 
       console.log('getUser called:', {
         userId: req.params.userId,
-        authenticatedUser: {
-          id: req.user.user_id,
-          email: req.user.email
-        },
+        authenticatedUser: req.user
+          ? { id: req.user.user_id, email: req.user.email }
+          : null,
         headers: {
           authorization: req.headers.authorization,
           cookie: req.headers.cookie
         }
       });
+
+      // Debug log before DB query
+      console.log('[DEBUG] Looking up user in DB:', userId);
 
       // Try to get from cache first
       const cachedUser = await redis.get(`user:${userId}`);
@@ -210,6 +214,8 @@ class UserController {
 
       // Get from database
       const user = await User.findById(userId);
+      // Debug log after DB query
+      console.log('[DEBUG] DB result for user:', user);
       if (!user) {
         console.log('User not found in database');
         return res.status(404).json({ message: 'User not found' });
@@ -412,6 +418,85 @@ class UserController {
       next(error);
     }
   }
+
+  // Follow a user
+  async followUser(req, res, next) {
+    try {
+      const followerId = req.user.user_id;
+      const followingId = req.params.id;
+      await UserFollow.follow(followerId, followingId);
+      // Emit event for count update
+      await rabbitmq.sendToQueue('user-events', {
+        type: 'user_follow',
+        followerId,
+        followingId
+      });
+      res.json({ message: 'Followed successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Unfollow a user
+  async unfollowUser(req, res, next) {
+    try {
+      const followerId = req.user.user_id;
+      const followingId = req.params.id;
+      await UserFollow.unfollow(followerId, followingId);
+      // Emit event for count update
+      await rabbitmq.sendToQueue('user-events', {
+        type: 'user_unfollow',
+        followerId,
+        followingId
+      });
+      res.json({ message: 'Unfollowed successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Get followers
+  async getFollowers(req, res, next) {
+    try {
+      const userId = req.params.id;
+      const { limit = 20, offset = 0 } = req.query;
+      const followers = await UserFollow.getFollowers(userId, limit, offset);
+      res.json(followers);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Get following
+  async getFollowing(req, res, next) {
+    try {
+      const userId = req.params.id;
+      const { limit = 20, offset = 0 } = req.query;
+      const following = await UserFollow.getFollowing(userId, limit, offset);
+      res.json(following);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
-module.exports = new UserController(); 
+const userControllerInstance = new UserController();
+
+module.exports = {
+  register: userControllerInstance.register.bind(userControllerInstance),
+  login: userControllerInstance.login.bind(userControllerInstance),
+  logout: userControllerInstance.logout.bind(userControllerInstance),
+  googleAuth: userControllerInstance.googleAuth.bind(userControllerInstance),
+  getUser: userControllerInstance.getUser.bind(userControllerInstance),
+  getUserById: userControllerInstance.getUser.bind(userControllerInstance),
+  getMe: userControllerInstance.getMe.bind(userControllerInstance),
+  updateUser: userControllerInstance.updateUser.bind(userControllerInstance),
+  deleteUser: userControllerInstance.deleteUser.bind(userControllerInstance),
+  getUserPosts: userControllerInstance.getUserPosts.bind(userControllerInstance),
+  getUserFollowers: userControllerInstance.getUserFollowers.bind(userControllerInstance),
+  getUserFollowing: userControllerInstance.getUserFollowing.bind(userControllerInstance),
+  followUser: userControllerInstance.followUser.bind(userControllerInstance),
+  unfollowUser: userControllerInstance.unfollowUser.bind(userControllerInstance),
+  getFollowers: userControllerInstance.getFollowers.bind(userControllerInstance),
+  getFollowing: userControllerInstance.getFollowing.bind(userControllerInstance)
+}; 

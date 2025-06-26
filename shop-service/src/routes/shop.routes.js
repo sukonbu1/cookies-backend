@@ -20,7 +20,8 @@ const shopValidation = [
 ];
 
 const idValidation = [
-  param('id').isUUID().withMessage('Invalid shop ID')
+  param('id').isUUID().withMessage('Invalid shop ID'),
+  validateRequest
 ];
 
 const statusValidation = [
@@ -32,11 +33,10 @@ const statusValidation = [
 // Routes
 router.get('/', shopController.getAllShops);
 router.post('/', authMiddleware.verifyToken, shopValidation, shopController.createShop);
-router.get('/:id', idValidation, validateRequest, shopController.getShopById);
+router.get('/:id', idValidation, shopController.getShopById);
 router.put('/:id', authMiddleware.verifyToken, idValidation.concat(shopValidation), shopController.updateShop);
-router.delete('/:id', authMiddleware.verifyToken, idValidation, validateRequest, shopController.deleteShop);
+router.delete('/:id', authMiddleware.verifyToken, idValidation, shopController.deleteShop);
 router.patch('/:id/status', authMiddleware.verifyToken, statusValidation, shopController.updateShopStatus);
 
-// TODO: Add /api/orders and /api/payments endpoints in separate routes files
 
 module.exports = router; 

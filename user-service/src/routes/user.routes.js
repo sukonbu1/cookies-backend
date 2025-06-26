@@ -64,12 +64,10 @@ router.get('/test-auth', (req, res) => {
 
 // User routes
 router.get('/me', authenticate, userController.getMe);
-router.get('/:userId', authenticate, userController.getUser);
+router.get('/:userId', userController.getUserById);
 router.put('/:userId', authenticate, updateUserSchema, validateRequest, userController.updateUser);
 router.delete('/:userId', authenticate, userController.deleteUser);
 router.get('/:userId/posts', authenticate, userController.getUserPosts);
-router.get('/:userId/followers', authenticate, userController.getUserFollowers);
-router.get('/:userId/following', authenticate, userController.getUserFollowing);
 
 // Avatar routes
 router.post('/:userId/avatar', authenticate, upload.single('avatar'), async (req, res, next) => {
@@ -82,5 +80,12 @@ router.post('/:userId/avatar', authenticate, upload.single('avatar'), async (req
     next(err);
   }
 });
+
+// Follow/unfollow endpoints
+router.post('/:id/follow', authenticate, userController.followUser);
+router.delete('/:id/follow', authenticate, userController.unfollowUser);
+// List followers/following
+router.get('/:id/followers', userController.getFollowers);
+router.get('/:id/following', userController.getFollowing);
 
 module.exports = router; 
