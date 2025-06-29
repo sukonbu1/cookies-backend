@@ -2,6 +2,7 @@
 /*
 
 # But NOT these folders (negate the ignore)
+!recipe-service/
 !user-service/
 !post-service/
 !shop-service/
