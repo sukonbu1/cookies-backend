@@ -479,6 +479,33 @@ class UserController {
       next(err);
     }
   }
+
+  async searchUsers(req, res, next) {
+    try {
+      const { q = '', page = 1, limit = 10 } = req.query;
+      if (!q) {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'Search query is required' 
+        });
+      }
+
+      const pagination = { 
+        page: parseInt(page), 
+        limit: parseInt(limit) 
+      };
+      
+      const users = await User.searchUsers(q, pagination);
+      
+      res.json({ 
+        status: 'success', 
+        data: users, 
+        pagination 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 const userControllerInstance = new UserController();
@@ -499,5 +526,6 @@ module.exports = {
   followUser: userControllerInstance.followUser.bind(userControllerInstance),
   unfollowUser: userControllerInstance.unfollowUser.bind(userControllerInstance),
   getFollowers: userControllerInstance.getFollowers.bind(userControllerInstance),
-  getFollowing: userControllerInstance.getFollowing.bind(userControllerInstance)
+  getFollowing: userControllerInstance.getFollowing.bind(userControllerInstance),
+  searchUsers: userControllerInstance.searchUsers.bind(userControllerInstance)
 }; 

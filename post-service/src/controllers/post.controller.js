@@ -307,6 +307,18 @@ class PostController {
       next(error);
     }
   }
+
+  async searchPosts(req, res, next) {
+    try {
+      const { q = '', page = 1, limit = 10 } = req.query;
+      if (!q) return res.status(400).json({ status: 'error', message: 'Search query is required' });
+      const pagination = { page: parseInt(page), limit: parseInt(limit) };
+      const posts = await Post.searchPosts(q, pagination);
+      res.json({ status: 'success', data: posts, pagination });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new PostController(); 

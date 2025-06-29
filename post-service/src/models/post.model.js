@@ -188,6 +188,38 @@ class Post {
     const { rows } = await pool.query(query, [postId]);
     return rows[0];
   }
+
+  static async searchPosts(query, pagination = {}) {
+    let sql = `
+      SELECT p.*, 
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'media_id', pm.media_id,
+                   'url', pm.media_url,
+                   'media_type', pm.media_type,
+                   'thumbnail_url', pm.thumbnail_url,
+                   'position', pm.position
+                 )
+               ) FILTER (WHERE pm.media_id IS NOT NULL),
+               '[]'
+             ) as media
+      FROM posts p
+      LEFT JOIN postmedia pm ON p.post_id = pm.post_id
+      WHERE p.title ILIKE $1 OR p.description ILIKE $1
+      GROUP BY p.post_id
+      ORDER BY p.created_at DESC
+    `;
+    const values = [`%${query}%`];
+    // Pagination
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 10;
+    const offset = (page - 1) * limit;
+    sql += ` LIMIT $2 OFFSET $3`;
+    values.push(limit, offset);
+    const { rows } = await pool.query(sql, values);
+    return rows;
+  }
 }
 
 module.exports = Post; 

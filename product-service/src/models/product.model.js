@@ -105,7 +105,7 @@ class Product {
     }
     if (filters.search) {
       values.push(`%${filters.search}%`);
-      conditions.push(`(p.name ILIKE $${values.length} OR p.description ILIKE $${values.length})`);
+      conditions.push(`(p.name ILIKE $${values.length} OR p.description ILIKE $${values.length} OR p.sku ILIKE $${values.length})`);
     }
     if (filters.is_featured !== undefined) {
       values.push(filters.is_featured);

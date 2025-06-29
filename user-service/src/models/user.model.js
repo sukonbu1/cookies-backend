@@ -190,6 +190,31 @@ class User {
   static async verifyPassword(password, hash) {
     return bcrypt.compare(password, hash);
   }
+
+  static async searchUsers(query, pagination = {}) {
+    try {
+      const page = pagination.page || 1;
+      const limit = pagination.limit || 10;
+      const offset = (page - 1) * limit;
+
+      const sql = `
+        SELECT user_id, username, email, bio, avatar_url, cover_photo_url, 
+               is_verified, is_chef, followers_count, following_count, posts_count,
+               country, city, created_at, updated_at
+        FROM users 
+        WHERE (username ILIKE $1 OR email ILIKE $1)
+        AND status = 'active'
+        ORDER BY username ASC
+        LIMIT $2 OFFSET $3
+      `;
+      
+      const values = [`%${query}%`, limit, offset];
+      const { rows } = await pool.query(sql, values);
+      return rows;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = User; 

@@ -61,6 +61,9 @@ router.get('/test-auth', (req, res) => {
   });
 });
 
+// Search endpoint
+router.get('/search', userController.searchUsers);
+
 // User routes
 router.get('/me', authenticate, userController.getMe);
 router.get('/:userId', userController.getUserById);
