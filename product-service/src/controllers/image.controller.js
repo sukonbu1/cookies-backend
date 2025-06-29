@@ -1,35 +1,29 @@
 const ProductImage = require('../models/productImage.model');
-const upload = require('../middleware/uploadMiddleware');
 
 class ImageController {
   async uploadImage(req, res, next) {
     try {
       const { productId } = req.params;
-      const files = req.files;
-
-      if (!files || files.length === 0) {
+      const { images } = req.body; 
+      if (!Array.isArray(images) || images.length === 0) {
         return res.status(400).json({
           status: 'error',
-          message: 'No files uploaded'
+          message: 'No images provided'
         });
       }
-
       const uploadedImages = [];
-
-      for (const file of files) {
+      for (const img of images) {
         const imageData = {
           product_id: productId,
-          image_url: file.path, // Cloudinary URL
-          thumbnail_url: file.path, // You can generate thumbnail URL if needed
-          alt_text: req.body.alt_text || file.originalname,
-          position: req.body.position || 0,
-          is_primary: req.body.is_primary === 'true' || false
+          image_url: img.url,
+          thumbnail_url: img.thumbnail_url || img.url,
+          alt_text: img.alt_text || null,
+          position: img.position || 0,
+          is_primary: img.is_primary || false
         };
-
         const image = await ProductImage.create(imageData);
         uploadedImages.push(image);
       }
-
       res.status(201).json({
         status: 'success',
         data: uploadedImages

@@ -14,22 +14,21 @@ app.use(helmet());
 
 // CORS configuration
 const allowedOrigins = [
-  'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
-  'https://cookies2-next.vercel.app',                // Friend's Vercel deployment
-  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
-  'http://localhost:3002',                             // Local shop service
-  'http://103.253.145.7:3002',                         // Production shop service
-  'http://localhost:3001',                             // Local user service
-  'http://localhost:5173',                             // Vite dev server
-  'http://localhost:8080',                             // Additional dev port
-  'https://localhost:3000',                            // HTTPS local frontend
-  'https://localhost:3001',                            // HTTPS local user service
-  'https://localhost:5173',                            // HTTPS Vite dev server
-  // Allow localhost to connect to production server
-  'http://localhost:3000',                             // Local frontend to production backend
-  'http://localhost:3001',                             // Local frontend to production backend
-  'http://localhost:5173,',                            // Local frontend to production backend
-  'http://localhost:3000',                             // Local frontend to production backend
+  'https://cookies-next-mwpp.vercel.app',
+  'https://cookies2-next.vercel.app',
+  process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'http://localhost:3002',
+  'http://103.253.145.7:3002',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'https://localhost:3000',
+  'https://localhost:3001',
+  'https://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173,',
+  'http://localhost:3000',
   'http://103.253.145.7',
   'https://103.253.145.7',
   'http://103.253.145.7:5173',
@@ -41,17 +40,13 @@ app.use(cors({
       console.log('Request with no origin - allowing');
       return callback(null, true);
     }
-    
     console.log('CORS check for origin:', origin);
-    
-    
     if (allowedOrigins.indexOf(origin) !== -1 || 
         origin.startsWith('http://localhost:') || 
         origin.startsWith('https://localhost:')) {
       console.log('CORS origin allowed:', origin);
       return callback(null, true);
     }
-    
     console.log('CORS origin not allowed:', origin);
     return callback(new Error('CORS not allowed'));
   },
@@ -67,8 +62,7 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
 
-// Static files (if you want to serve uploads)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// No static file serving needed; all media is handled by the frontend
 
 // Handle preflight requests explicitly
 app.options('*', cors());

@@ -5,10 +5,9 @@ A microservices-based backend for a food social network platform.
 ## Services
 
 - **User Service**: User profiles, authentication sync
-- **Video Service**: Video processing, storage, streaming
-- **Post Service**: Post metadata, text content
-- **Recipe Service**: Recipe data
-- **Product Service**: Product catalog
+- **Post Service**: Post metadata, text content, media URLs
+- **Recipe Service**: Recipe data (linked to posts)
+- **Product Service**: Product catalog, variants, images (URLs only)
 - **Shop Service**: Orders, shops
 - **Follow Service**: User relationships
 - **Tag Service**: Tags and categorization
@@ -20,7 +19,6 @@ A microservices-based backend for a food social network platform.
 - PostgreSQL 
 - Redis (for caching)
 - Kong (API Gateway)
-- Cloudinary (media storage)
 
 ## Prerequisites
 
@@ -61,6 +59,12 @@ service-name/
 ├── package.json
 └── README.md
 ```
+
+## Media Uploads
+
+- **All media uploads (images, videos) are now handled by the frontend.**
+- The backend only stores and processes media URLs provided by the frontend (e.g., Cloudinary URLs).
+- No backend file upload or Cloudinary integration is present in any service.
 
 ## API Documentation
 

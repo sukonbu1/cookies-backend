@@ -3,7 +3,6 @@ const router = express.Router();
 const { body, param } = require('express-validator');
 const imageController = require('../controllers/image.controller');
 const authMiddleware = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
 const { validateRequest } = require('../middleware/validation.middleware');
 
 // Validation middleware
@@ -43,7 +42,6 @@ router.get('/:imageId', imageIdValidation, imageController.getImageById);
 router.post('/product/:productId', 
   authMiddleware.verifyToken, 
   productIdValidation,
-  upload.array('images', 10), // Allow up to 10 images
   imageValidation,
   imageController.uploadImage
 );

@@ -4,19 +4,18 @@ const { v4: uuidv4 } = require('uuid');
 class ProductVariant {
   static async create(variantData) {
     const query = `
-      INSERT INTO "ProductVariants" (
-        variant_id, product_id, name, sku, price, sale_price,
+      INSERT INTO "productvariants" (
+        variant_id, product_id, sku, price, sale_price,
         stock_quantity, weight, weight_unit, dimensions,
         color, size, material, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     
     const values = [
       uuidv4(),
       variantData.product_id,
-      variantData.name,
       variantData.sku,
       variantData.price,
       variantData.sale_price || null,
@@ -34,14 +33,14 @@ class ProductVariant {
   }
 
   static async findById(variantId) {
-    const query = 'SELECT * FROM "ProductVariants" WHERE variant_id = $1';
+    const query = 'SELECT * FROM "productvariants" WHERE variant_id = $1';
     const { rows } = await pool.query(query, [variantId]);
     return rows[0] || null;
   }
 
   static async findByProductId(productId) {
     const query = `
-      SELECT * FROM "ProductVariants" 
+      SELECT * FROM "productvariants" 
       WHERE product_id = $1 
       ORDER BY created_at ASC
     `;
@@ -55,7 +54,7 @@ class ProductVariant {
       .join(', ');
     
     const query = `
-      UPDATE "ProductVariants" 
+      UPDATE "productvariants" 
       SET ${setClause}, updated_at = CURRENT_TIMESTAMP
       WHERE variant_id = $1
       RETURNING *
@@ -67,14 +66,14 @@ class ProductVariant {
   }
 
   static async delete(variantId) {
-    const query = 'DELETE FROM "ProductVariants" WHERE variant_id = $1';
+    const query = 'DELETE FROM "productvariants" WHERE variant_id = $1';
     const { rowCount } = await pool.query(query, [variantId]);
     return rowCount > 0;
   }
 
   static async updateStock(variantId, stockQuantity) {
     const query = `
-      UPDATE "ProductVariants" 
+      UPDATE "productvariants" 
       SET stock_quantity = $2, updated_at = CURRENT_TIMESTAMP
       WHERE variant_id = $1
       RETURNING *
@@ -85,7 +84,7 @@ class ProductVariant {
   }
 
   static async deleteByProductId(productId) {
-    const query = 'DELETE FROM "ProductVariants" WHERE product_id = $1';
+    const query = 'DELETE FROM "productvariants" WHERE product_id = $1';
     const { rowCount } = await pool.query(query, [productId]);
     return rowCount > 0;
   }

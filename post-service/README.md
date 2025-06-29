@@ -17,10 +17,16 @@ This is the Post microservice for the Food Social Network project.
 
 ## Endpoints
 
-- `POST /api/posts` - Create a new post
+- `POST /api/posts` - Create a new post (media URLs only; upload handled by frontend)
 - `GET /api/posts/:postId` - Get a post by ID
 - `GET /api/posts/user/:userId` - Get posts by user
 - `GET /health` - Health check
+
+## Media Handling
+
+- All media uploads (images, videos) are handled by the frontend (e.g., direct to Cloudinary).
+- The backend only stores and processes media URLs provided by the frontend.
+- No backend file upload or Cloudinary integration is present.
 
 ## Caching
 

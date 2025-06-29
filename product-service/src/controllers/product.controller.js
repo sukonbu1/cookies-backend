@@ -39,9 +39,14 @@ class ProductController {
           message: 'Product not found'
         });
       }
+      // Fetch variants for this product
+      const variants = await ProductVariant.findByProductId(req.params.id);
       res.json({
         status: 'success',
-        data: product
+        data: {
+          ...product,
+          variants
+        }
       });
     } catch (error) {
       next(error);
@@ -54,8 +59,33 @@ class ProductController {
         ...req.body,
         slug: slugify(req.body.name, { lower: true })
       };
-
+      const images = req.body.images || [];
+      const variants = req.body.variants || [];
+      delete productData.images;
+      delete productData.variants;
       const product = await Product.create(productData);
+      // Save images if provided
+      if (Array.isArray(images)) {
+        for (const img of images) {
+          await ProductImage.create({
+            product_id: product.product_id,
+            image_url: img.url,
+            thumbnail_url: img.thumbnail_url || img.url,
+            alt_text: img.alt_text || null,
+            position: img.position || 0,
+            is_primary: img.is_primary || false
+          });
+        }
+      }
+      // Save variants if provided
+      if (Array.isArray(variants)) {
+        for (const variant of variants) {
+          await ProductVariant.create({
+            product_id: product.product_id,
+            ...variant
+          });
+        }
+      }
       res.status(201).json({
         status: 'success',
         data: product
@@ -74,14 +104,38 @@ class ProductController {
           message: 'Product not found'
         });
       }
-
       const updateData = {
         ...req.body,
         slug: req.body.name ? slugify(req.body.name, { lower: true }) : product.slug
       };
-
+      const images = req.body.images || [];
+      const variants = req.body.variants || [];
+      delete updateData.images;
+      delete updateData.variants;
       const updatedProduct = await Product.update(req.params.id, updateData);
-
+      // Optionally update images (add logic as needed)
+      if (Array.isArray(images) && images.length > 0) {
+        await ProductImage.deleteByProductId(req.params.id);
+        for (const img of images) {
+          await ProductImage.create({
+            product_id: req.params.id,
+            image_url: img.url,
+            thumbnail_url: img.thumbnail_url || img.url,
+            alt_text: img.alt_text || null,
+            position: img.position || 0,
+            is_primary: img.is_primary || false
+          });
+        }
+      }
+      if (Array.isArray(variants)) {
+        await ProductVariant.deleteByProductId(req.params.id);
+        for (const variant of variants) {
+          await ProductVariant.create({
+            product_id: req.params.id,
+            ...variant
+          });
+        }
+      }
       res.json({
         status: 'success',
         data: updatedProduct

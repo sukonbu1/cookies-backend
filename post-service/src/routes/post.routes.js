@@ -3,7 +3,6 @@ const router = express.Router();
 const { body } = require('express-validator');
 const postController = require('../controllers/post.controller');
 const authMiddleware = require('../middleware/authMiddleware');
-const uploadMiddleware = require('../middleware/uploadMiddleware');
 
 // Validation middleware
 const postValidation = [
@@ -17,13 +16,11 @@ router.get('/user/:userId', postController.getUserPosts);
 router.get('/:id', postController.getPostById);
 router.post('/', 
   authMiddleware.verifyToken,
-  uploadMiddleware.single('image'),
   postValidation,
   postController.createPost
 );
 router.put('/:id',
   authMiddleware.verifyToken,
-  uploadMiddleware.single('image'),
   postValidation,
   postController.updatePost
 );
@@ -47,13 +44,13 @@ router.delete('/:id/comments/:commentId',
   postController.deleteComment
 );
 
-// Media routes
-router.post(
-  '/:id/media',
-  authMiddleware.verifyToken,
-  uploadMiddleware.array('media', 10), // up to 10 files
-  postController.uploadMedia
-);
+// Media routes (deprecated, no longer used)
+// router.post(
+//   '/:id/media',
+//   authMiddleware.verifyToken,
+//   uploadMiddleware.array('media', 10), // up to 10 files
+//   postController.uploadMedia
+// );
 
 // Share routes
 router.post('/:id/share', authMiddleware.verifyToken, postController.sharePost);
@@ -61,5 +58,8 @@ router.get('/:id/shares', authMiddleware.verifyToken, postController.getPostShar
 
 // Hashtag feed endpoint
 router.get('/hashtags/:name/posts', postController.getPostsByHashtag);
+
+// Hashtag search endpoint
+router.get('/hashtags/search', postController.searchHashtags);
 
 module.exports = router; 

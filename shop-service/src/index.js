@@ -20,22 +20,21 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 // CORS configuration
 const allowedOrigins = [
-  'https://cookies-next-mwpp.vercel.app',              // Deployed Frontend on Vercel
-  'https://cookies2-next.vercel.app',                // Friend's Vercel deployment
-  process.env.CORS_ORIGIN || 'http://localhost:3000',  // Local Frontend
-  'http://localhost:3002',                             // Local shop service
-  'http://103.253.145.7:3002',                         // Production shop service
-  'http://localhost:3001',                             // Local user service
-  'http://localhost:5173',                             // Vite dev server
-  'http://localhost:8080',                             // Additional dev port
-  'https://localhost:3000',                            // HTTPS local frontend
-  'https://localhost:3001',                            // HTTPS local user service
-  'https://localhost:5173',                            // HTTPS Vite dev server
-  // Allow localhost to connect to production server
-  'http://localhost:3000',                             // Local frontend to production backend
-  'http://localhost:3001',                             // Local frontend to production backend
-  'http://localhost:5173,',                            // Local frontend to production backend
-  'http://localhost:3000',                             // Local frontend to production backend
+  'https://cookies-next-mwpp.vercel.app',
+  'https://cookies2-next.vercel.app',
+  process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'http://localhost:3002',
+  'http://103.253.145.7:3002',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'https://localhost:3000',
+  'https://localhost:3001',
+  'https://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173,',
+  'http://localhost:3000',
   'http://103.253.145.7',
   'https://103.253.145.7',
   'http://103.253.145.7:5173',

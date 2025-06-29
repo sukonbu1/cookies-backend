@@ -4,7 +4,6 @@ const { body } = require('express-validator');
 const userController = require('../controllers/user.controller');
 const { validateRequest } = require('../middleware/validation.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
-const upload = require('../middleware/upload.middleware');
 const User = require('../models/user.model');
 
 // Validation schemas
@@ -69,17 +68,7 @@ router.put('/:userId', authenticate, updateUserSchema, validateRequest, userCont
 router.delete('/:userId', authenticate, userController.deleteUser);
 router.get('/:userId/posts', authenticate, userController.getUserPosts);
 
-// Avatar routes
-router.post('/:userId/avatar', authenticate, upload.single('avatar'), async (req, res, next) => {
-  try {
-    const avatarUrl = req.file.path; // Cloudinary's secure_url
-    const user = await require('../models/user.model').updateProfilePicture(req.params.userId, avatarUrl);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ avatar_url: avatarUrl });
-  } catch (err) {
-    next(err);
-  }
-});
+// Avatar upload route removed; avatars are now set via URL in updateUser
 
 // Follow/unfollow endpoints
 router.post('/:id/follow', authenticate, userController.followUser);

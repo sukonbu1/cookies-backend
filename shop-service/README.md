@@ -7,6 +7,7 @@ This is the **Shop Service** for the platform. It manages shop creation, updates
   - Create, update, delete, and retrieve shops
   - Pagination and filtering for shop listings
   - Shop status management (active, inactive, suspended)
+  - **Shop and product images are handled by the frontend; only URLs are stored.**
 
 - Order Management:
   - Create, update, delete, and retrieve orders

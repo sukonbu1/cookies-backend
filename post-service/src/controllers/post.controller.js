@@ -20,7 +20,7 @@ function extractHashtags(text) {
 class PostController {
   async createPost(req, res, next) {
     try {
-      const { content_type, title, description, cooking_time, difficulty_level, serving_size, has_recipe, is_premium, premium_price, status, is_featured } = req.body;
+      const { content_type, title, description, cooking_time, difficulty_level, serving_size, has_recipe, is_premium, premium_price, status, is_featured, media } = req.body;
       const userId = req.user.uid || req.user.userId;
       const post = await Post.create({
         user_id: userId,
@@ -36,6 +36,23 @@ class PostController {
         status,
         is_featured
       });
+      // Save media URLs if provided
+      if (Array.isArray(media)) {
+        for (const m of media) {
+          // m should be { url: string, type: 'image' | 'video', ... }
+          await PostMedia.create({
+            post_id: post.post_id,
+            media_type: m.type || 'image',
+            media_url: m.url,
+            thumbnail_url: m.thumbnail_url || null,
+            duration: m.duration || null,
+            width: m.width || null,
+            height: m.height || null,
+            file_size: m.file_size || null,
+            position: m.position || null
+          });
+        }
+      }
       // Extract hashtags from content
       const hashtags = extractHashtags(description);
       if (hashtags.length > 0) {
@@ -231,27 +248,8 @@ class PostController {
   }
 
   async uploadMedia(req, res, next) {
-    try {
-      const { id: postId } = req.params;
-      const files = req.files;
-      if (!files || files.length === 0) {
-        return res.status(400).json({ status: 'error', message: 'No files uploaded' });
-      }
-      const mediaRecords = [];
-      for (const file of files) {
-        const mediaUrl = file.path;
-        const mediaType = file.mimetype.startsWith('image') ? 'image' : 'video';
-        const media = await PostMedia.create({
-          post_id: postId,
-          media_type: mediaType,
-          media_url: mediaUrl
-        });
-        mediaRecords.push(media);
-      }
-      res.status(201).json({ status: 'success', data: mediaRecords });
-    } catch (error) {
-      next(error);
-    }
+    // This endpoint is deprecated in the new flow (media is handled in createPost)
+    return res.status(410).json({ status: 'error', message: 'Upload via backend is deprecated. Please upload to Cloudinary from the frontend and send URLs.' });
   }
 
   async sharePost(req, res, next) {
@@ -294,6 +292,17 @@ class PostController {
       const { limit = 20, offset = 0 } = req.query;
       const posts = await Hashtag.getPostsByHashtag(name, limit, offset);
       res.json(posts);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async searchHashtags(req, res, next) {
+    try {
+      const { q = '', limit = 10 } = req.query;
+      if (!q) return res.json([]);
+      const hashtags = await Hashtag.searchByPrefix(q, limit);
+      res.json(hashtags);
     } catch (error) {
       next(error);
     }

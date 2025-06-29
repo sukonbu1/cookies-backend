@@ -116,7 +116,11 @@ class ShopController {
         }
       }
       // Now create the shop
-      const shop = await ShopService.createShop({ ...req.body, user_id }, client);
+      const shopData = { ...req.body, user_id };
+      // Accept logo_url and banner_url from frontend
+      if (req.body.logo_url) shopData.logo_url = req.body.logo_url;
+      if (req.body.banner_url) shopData.banner_url = req.body.banner_url;
+      const shop = await ShopService.createShop(shopData, client);
       await client.query('COMMIT');
       res.status(201).json({ status: 'success', data: shop });
     } catch (error) {
@@ -154,8 +158,12 @@ class ShopController {
 
   async updateShop(req, res, next) {
     try {
+      const updateData = { ...req.body };
+      // Accept logo_url and banner_url from frontend
+      if (req.body.logo_url) updateData.logo_url = req.body.logo_url;
+      if (req.body.banner_url) updateData.banner_url = req.body.banner_url;
       // Optionally, only allow update if req.user.uid matches shop.user_id
-      const shop = await ShopService.updateShop(req.params.id, req.body);
+      const shop = await ShopService.updateShop(req.params.id, updateData);
       if (!shop) return res.status(404).json({ status: 'error', message: 'Shop not found' });
       res.json({ status: 'success', data: shop });
     } catch (error) {

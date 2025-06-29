@@ -11,7 +11,7 @@ const CACHE_TTL = 300; // 5 minutes
 class UserController {
   async register(req, res, next) {
     try {
-      const { email, password, username, ...userData } = req.body;
+      const { email, password, username, avatar_url, cover_url, ...userData } = req.body;
       
       // Check if user already exists
       const existingUser = await User.findByEmail(email);
@@ -38,6 +38,8 @@ class UserController {
         user_id: userRecord.uid,
         email,
         username: finalUsername,
+        avatar_url: avatar_url || null,
+        cover_url: cover_url || null,
         ...userData
       });
 
@@ -290,16 +292,15 @@ class UserController {
   async updateUser(req, res, next) {
     try {
       const { userId } = req.params;
-      const updates = req.body;
-
+      const updates = { ...req.body };
+      if (req.body.avatar_url) updates.avatar_url = req.body.avatar_url;
+      if (req.body.cover_url) updates.cover_url = req.body.cover_url;
       const user = await User.update(userId, updates);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-
       // Invalidate cache
       await redis.del(`user:${userId}`);
-
       // Remove sensitive data
       const { password_hash, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);

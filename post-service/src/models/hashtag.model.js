@@ -47,6 +47,15 @@ class Hashtag {
     `, [postId]);
     return result.rows;
   }
+
+  static async searchByPrefix(prefix, limit = 10) {
+    const tag = prefix.toLowerCase() + '%';
+    const result = await pool.query(
+      'SELECT * FROM hashtags WHERE name LIKE $1 ORDER BY name ASC LIMIT $2',
+      [tag, limit]
+    );
+    return result.rows;
+  }
 }
 
 module.exports = Hashtag; 
