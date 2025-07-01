@@ -32,14 +32,8 @@ class PostLike {
 
   static async findByContentId(content_id, content_type) {
     const query = `
-      SELECT l.*, 
-             json_build_object(
-               'user_id', u.user_id,
-               'username', u.username,
-               'email', u.email
-             ) as user
+      SELECT l.like_id, l.user_id, l.content_id, l.content_type, l.created_at
       FROM likes l
-      LEFT JOIN users u ON l.user_id = u.user_id
       WHERE l.content_id = $1 AND l.content_type = $2
       ORDER BY l.created_at DESC
     `;

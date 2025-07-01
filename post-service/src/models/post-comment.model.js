@@ -24,14 +24,8 @@ class PostComment {
 
   static async findByPostId(post_id) {
     const query = `
-      SELECT pc.*, 
-             json_build_object(
-               'user_id', u.user_id,
-               'username', u.username,
-               'email', u.email
-             ) as user
+      SELECT pc.comment_id, pc.post_id, pc.user_id, pc.content, pc.created_at, pc.updated_at
       FROM comments pc
-      LEFT JOIN users u ON pc.user_id = u.user_id
       WHERE pc.post_id = $1
       ORDER BY pc.created_at ASC
     `;

@@ -87,11 +87,18 @@ class PostController {
       const cacheKey = `post:${id}`;
       const cached = await redis.get(cacheKey);
       if (cached) return res.json(JSON.parse(cached));
-      const post = await Post.findById(id);
-      if (!post) return res.status(404).json({ message: 'Post not found' });
-      await redis.set(cacheKey, JSON.stringify(post), 'EX', CACHE_TTL);
-      res.json({ status: 'success', data: post });
+      
+      // Use service layer to get post with comments and likes
+      const PostService = require('../services/post.service');
+      const post = await PostService.getPostById(id);
+      
+      const response = { status: 'success', data: post };
+      await redis.set(cacheKey, JSON.stringify(response), 'EX', CACHE_TTL);
+      res.json(response);
     } catch (error) {
+      if (error.message === 'Post not found') {
+        return res.status(404).json({ status: 'error', message: 'Post not found' });
+      }
       next(error);
     }
   }

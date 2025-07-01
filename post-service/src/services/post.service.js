@@ -1,7 +1,6 @@
 const Post = require('../models/post.model');
 const PostLike = require('../models/post-like.model');
 const PostComment = require('../models/post-comment.model');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary.utils');
 
 class PostService {
   static async getAllPosts() {
@@ -37,38 +36,22 @@ class PostService {
     }
   }
 
-  static async createPost(postData, userId, imageFile) {
+  static async createPost(postData, userId) {
     try {
-      let imageUrl = null;
-      let imagePublicId = null;
-
-      // Upload image to Cloudinary if provided
-      if (imageFile) {
-        const uploadResult = await uploadToCloudinary(imageFile, 'post-images');
-        imageUrl = uploadResult.secure_url;
-        imagePublicId = uploadResult.public_id;
-      }
-
       const post = await Post.create({
         ...postData,
-        user_id: userId,
-        image_url: imageUrl,
-        image_public_id: imagePublicId
+        user_id: userId
       });
 
       return post;
     } catch (error) {
-      // If there was an error and we uploaded an image, delete it from Cloudinary
-      if (imageFile) {
-        await deleteFromCloudinary(imageFile.public_id);
-      }
       throw error;
     }
   }
 
-  static async updatePost(postId, userId, updateData, imageFile) {
+  static async updatePost(postId, userId, updateData) {
     try {
-      // Get current post to check if there's an existing image
+      // Get current post to verify it exists
       const currentPost = await Post.findById(postId);
       if (!currentPost) {
         throw new Error('Post not found');
@@ -79,40 +62,16 @@ class PostService {
         throw new Error('Unauthorized to update this post');
       }
 
-      let imageUrl = updateData.image_url;
-      let imagePublicId = currentPost.image_public_id;
-
-      // If new image is provided, upload it and delete the old one
-      if (imageFile) {
-        const uploadResult = await uploadToCloudinary(imageFile, 'post-images');
-        imageUrl = uploadResult.secure_url;
-        imagePublicId = uploadResult.public_id;
-
-        // Delete old image if exists
-        if (currentPost.image_public_id) {
-          await deleteFromCloudinary(currentPost.image_public_id);
-        }
-      }
-
-      const updatedPost = await Post.update(postId, userId, {
-        ...updateData,
-        image_url: imageUrl,
-        image_public_id: imagePublicId
-      });
-
+      const updatedPost = await Post.update(postId, userId, updateData);
       return updatedPost;
     } catch (error) {
-      // If there was an error and we uploaded a new image, delete it from Cloudinary
-      if (imageFile) {
-        await deleteFromCloudinary(imageFile.public_id);
-      }
       throw error;
     }
   }
 
   static async deletePost(postId, userId) {
     try {
-      // Get current post to check if there's an image to delete
+      // Get current post to verify it exists
       const currentPost = await Post.findById(postId);
       if (!currentPost) {
         throw new Error('Post not found');
@@ -121,11 +80,6 @@ class PostService {
       // Check if user owns the post
       if (currentPost.user_id !== userId) {
         throw new Error('Unauthorized to delete this post');
-      }
-
-      // Delete image from Cloudinary if exists
-      if (currentPost.image_public_id) {
-        await deleteFromCloudinary(currentPost.image_public_id);
       }
 
       await Post.delete(postId, userId);
