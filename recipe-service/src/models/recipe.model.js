@@ -5,7 +5,7 @@ class Recipe {
   static async create(recipeData, client = pool) {
     const query = `
       INSERT INTO "recipes" (
-        recipe_id, post_id, name, cuisine_type, meal_type, preparation_time, cooking_time, total_time, is_premium, premium_price, created_at, updated_at
+        recipe_id, post_id, name, cover_media_url, cuisine_type, meal_type, preparation_time, cooking_time, total_time, is_premium, premium_price, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
@@ -13,6 +13,7 @@ class Recipe {
       uuidv4(),
       recipeData.post_id,
       recipeData.name,
+      recipeData.cover_media_url || null,
       recipeData.cuisine_type || null,
       recipeData.meal_type || null,
       recipeData.preparation_time || null,
