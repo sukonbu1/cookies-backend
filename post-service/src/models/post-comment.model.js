@@ -24,7 +24,7 @@ class PostComment {
 
   static async findByPostId(post_id) {
     const query = `
-      SELECT pc.comment_id, pc.post_id, pc.user_id, pc.content, pc.created_at, pc.updated_at
+      SELECT pc.comment_id, pc.post_id, pc.user_id, pc.content, pc.parent_comment_id, pc.created_at, pc.updated_at
       FROM comments pc
       WHERE pc.post_id = $1
       ORDER BY pc.created_at ASC
