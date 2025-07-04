@@ -228,8 +228,8 @@ class PostController {
     try {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
-      const { content } = req.body;
-      const comment = await PostComment.create(id, userId, content);
+      const { content, parent_comment_id } = req.body;
+      const comment = await PostService.addComment(id, userId, content, parent_comment_id);
       await Post.updateCounts(id, 'comments', true);
       res.status(201).json({ status: 'success', data: comment });
     } catch (error) {

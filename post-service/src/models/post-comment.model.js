@@ -1,14 +1,14 @@
 const pool = require('../../../common/src/config/database');
 
 class PostComment {
-  static async create(post_id, user_id, content) {
+  static async create(post_id, user_id, content, parent_comment_id = null) {
     const query = `
-      INSERT INTO comments (post_id, user_id, content, created_at)
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+      INSERT INTO comments (post_id, user_id, content, parent_comment_id, created_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
       RETURNING *
     `;
 
-    const { rows } = await pool.query(query, [post_id, user_id, content]);
+    const { rows } = await pool.query(query, [post_id, user_id, content, parent_comment_id]);
     return rows[0];
   }
 

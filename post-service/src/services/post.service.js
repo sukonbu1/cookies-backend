@@ -131,7 +131,7 @@ class PostService {
     }
   }
 
-  static async addComment(postId, userId, content) {
+  static async addComment(postId, userId, content, parentCommentId = null) {
     try {
       // Check if post exists
       const post = await Post.findById(postId);
@@ -139,7 +139,7 @@ class PostService {
         throw new Error('Post not found');
       }
 
-      const comment = await PostComment.create(postId, userId, content);
+      const comment = await PostComment.create(postId, userId, content, parentCommentId);
       return comment;
     } catch (error) {
       throw error;
