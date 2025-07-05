@@ -3,10 +3,12 @@ const PostLike = require('../models/post-like.model');
 const PostComment = require('../models/post-comment.model');
 const PostMedia = require('../models/post-media.model');
 const PostShare = require('../models/post-share.model');
+
 const redis = require('../../../common/src/config/redis');
 const { v4: uuidv4 } = require('uuid');
 const Hashtag = require('../models/hashtag.model');
 const rabbitmq = require('../utils/rabbitmq.util');
+const PostService = require('../services/post.service');
 
 const CACHE_TTL = 300; // 5 minutes
 
@@ -89,7 +91,6 @@ class PostController {
       if (cached) return res.json(JSON.parse(cached));
       
       // Use service layer to get post with comments and likes
-      const PostService = require('../services/post.service');
       const post = await PostService.getPostById(id);
       
       const response = { status: 'success', data: post };

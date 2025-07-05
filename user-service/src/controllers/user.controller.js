@@ -11,45 +11,20 @@ const CACHE_TTL = 300; // 5 minutes
 class UserController {
   async register(req, res, next) {
     try {
-      const { email, password, username, avatar_url, cover_url, ...userData } = req.body;
-      
-      // Check if user already exists
-      const existingUser = await User.findByEmail(email);
-      if (existingUser) {
-        return res.status(409).json({ message: 'Email already registered' });
+      const { idToken } = req.body;
+      if (!idToken) return res.status(400).json({ message: 'ID token required' });
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      let user = await User.findById(decodedToken.uid);
+      if (!user) {
+        user = await User.create({
+          user_id: decodedToken.uid,
+          email: decodedToken.email,
+          username: User.generateUsernameFromEmail(decodedToken.email),
+          avatar_url: decodedToken.picture || null,
+          status: 'active'
+        });
       }
-
-      // Generate username from email if not provided
-      let finalUsername = username;
-      if (!finalUsername && email) {
-        finalUsername = User.generateUsernameFromEmail(email);
-      }
-
-      // Create user in Firebase
-      const userRecord = await admin.auth().createUser({
-        email,
-        password,
-        emailVerified: false,
-        disabled: false
-      });
-
-      // Create user profile in our database
-      const user = await User.create({
-        user_id: userRecord.uid,
-        email,
-        username: finalUsername,
-        avatar_url: avatar_url || null,
-        cover_url: cover_url || null,
-        ...userData
-      });
-
-      // Create custom token
-      const token = await TokenUtils.createCustomToken(userRecord.uid);
-      
-      // Set cookie with custom token
-      TokenUtils.setAuthCookie(res, token);
-
-      // Remove sensitive data
+      TokenUtils.setAuthCookie(res, idToken);
       const { password_hash, ...userWithoutPassword } = user;
       res.status(201).json(userWithoutPassword);
     } catch (error) {
@@ -59,37 +34,20 @@ class UserController {
 
   async login(req, res, next) {
     try {
-      const { email, username, password } = req.body;
-  
-      // Check if user provided email or username
-      const identifier = email || username;
-      if (!identifier || !password) {
-        return res.status(400).json({ message: 'Email/username and password are required' });
-      }
-
-      // Find user by email or username
-      const user = await User.findByEmailOrUsername(identifier);
+      const { idToken } = req.body;
+      if (!idToken) return res.status(400).json({ message: 'ID token required' });
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      let user = await User.findById(decodedToken.uid);
       if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        user = await User.create({
+          user_id: decodedToken.uid,
+          email: decodedToken.email,
+          username: User.generateUsernameFromEmail(decodedToken.email),
+          avatar_url: decodedToken.picture || null,
+          status: 'active'
+        });
       }
-
-      // Get Firebase user record using the email from our database
-      const userRecord = await admin.auth().getUserByEmail(user.email);
-      
-      if (user.status !== 'active') {
-        return res.status(403).json({ message: 'Account is not active' });
-      }
-  
-      // Create custom token using Firebase UID (not database _id)
-      const token = await TokenUtils.createCustomToken(userRecord.uid, {
-        email: user.email,
-        role: user.role
-      });
-      
-      // Set cookie with custom token
-      TokenUtils.setAuthCookie(res, token);
-  
-      // Remove sensitive data
+      TokenUtils.setAuthCookie(res, idToken);
       const { password_hash, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -506,6 +464,17 @@ class UserController {
       next(error);
     }
   }
+
+  async getEmailByUsername(req, res, next) {
+    try {
+      const { username } = req.body;
+      const user = await User.findByUsername(username);
+      if (!user) return res.status(404).json({ message: 'Username not found' });
+      res.json({ email: user.email });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 const userControllerInstance = new UserController();
@@ -527,5 +496,6 @@ module.exports = {
   unfollowUser: userControllerInstance.unfollowUser.bind(userControllerInstance),
   getFollowers: userControllerInstance.getFollowers.bind(userControllerInstance),
   getFollowing: userControllerInstance.getFollowing.bind(userControllerInstance),
-  searchUsers: userControllerInstance.searchUsers.bind(userControllerInstance)
+  searchUsers: userControllerInstance.searchUsers.bind(userControllerInstance),
+  getEmailByUsername: userControllerInstance.getEmailByUsername.bind(userControllerInstance)
 }; 

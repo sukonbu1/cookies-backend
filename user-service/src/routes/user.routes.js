@@ -40,8 +40,8 @@ const updateUserSchema = [
 ];
 
 // Auth routes
-router.post('/register', registerSchema, validateRequest, userController.register);
-router.post('/login', loginSchema, validateRequest, userController.login);
+router.post('/register', userController.register);
+router.post('/login', userController.login);
 router.post('/auth/google', userController.googleAuth);
 router.post('/logout', authenticate, userController.logout);
 
@@ -79,5 +79,7 @@ router.delete('/:id/follow', authenticate, userController.unfollowUser);
 // List followers/following
 router.get('/:id/followers', userController.getFollowers);
 router.get('/:id/following', userController.getFollowing);
+
+router.post('/email-by-username', userController.getEmailByUsername);
 
 module.exports = router; 
