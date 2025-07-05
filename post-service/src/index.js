@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const postRoutes = require('./routes/post.routes');
+require('./utils/redisViewSync.util');
 
 const app = express();
 

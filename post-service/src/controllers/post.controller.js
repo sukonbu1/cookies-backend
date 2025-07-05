@@ -89,10 +89,12 @@ class PostController {
       const cacheKey = `post:${id}`;
       const cached = await redis.get(cacheKey);
       if (cached) return res.json(JSON.parse(cached));
-      
       // Use service layer to get post with comments and likes
       const post = await PostService.getPostById(id);
-      
+      // Get real-time views from Redis
+      const redisKey = `post:${id}:views`;
+      const redisViews = parseInt(await redis.get(redisKey) || '0', 10);
+      post.views_count = (post.views_count || 0) + redisViews;
       const response = { status: 'success', data: post };
       await redis.set(cacheKey, JSON.stringify(response), 'EX', CACHE_TTL);
       res.json(response);
@@ -323,6 +325,18 @@ class PostController {
       const pagination = { page: parseInt(page), limit: parseInt(limit) };
       const posts = await Post.searchPosts(q, pagination);
       res.json({ status: 'success', data: posts, pagination });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async incrementView(req, res, next) {
+    try {
+      const { id } = req.params;
+      // Increment view count in Redis
+      const redisKey = `post:${id}:views`;
+      const redisCount = await redis.incr(redisKey);
+      res.json({ status: 'success', views: redisCount });
     } catch (error) {
       next(error);
     }

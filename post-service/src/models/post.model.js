@@ -164,15 +164,14 @@ class Post {
     return rowCount > 0;
   }
 
-  static async incrementViews(postId) {
+  static async incrementViews(postId, count = 1) {
     const query = `
       UPDATE posts
-      SET views_count = views_count + 1
+      SET views_count = views_count + $2
       WHERE post_id = $1
       RETURNING views_count
     `;
-
-    const { rows } = await pool.query(query, [postId]);
+    const { rows } = await pool.query(query, [postId, count]);
     return rows[0];
   }
 

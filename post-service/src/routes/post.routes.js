@@ -63,4 +63,7 @@ router.get('/hashtags/:name/posts', postController.getPostsByHashtag);
 // Hashtag search endpoint
 router.get('/hashtags/search', postController.searchHashtags);
 
+// View count endpoint
+router.post('/:id/view', postController.incrementView);
+
 module.exports = router; 
