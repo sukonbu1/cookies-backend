@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const Hashtag = require('../models/hashtag.model');
 const rabbitmq = require('../utils/rabbitmq.util');
 const PostService = require('../services/post.service');
+const HttpClient = require('../utils/http.util');
 
 const CACHE_TTL = 300; // 5 minutes
 
@@ -204,6 +205,19 @@ class PostController {
         type: 'post_like',
         postId: id
       });
+      // Fetch the post to get the owner
+      const post = await Post.findById(id);
+      // Fetch the actor's username
+      const actorName = await HttpClient.getUsernameById(userId);
+      if (post && post.user_id && post.user_id !== userId) {
+        await rabbitmq.sendToQueue('notification-events', {
+          type: 'like',
+          actor_id: userId,
+          actor_name: actorName,
+          target_user_id: post.user_id,
+          post_id: id
+        });
+      }
       res.json({ status: 'success', data: like });
     } catch (error) {
       next(error);
@@ -234,6 +248,20 @@ class PostController {
       const { content, parent_comment_id } = req.body;
       const comment = await PostService.addComment(id, userId, content, parent_comment_id);
       await Post.updateCounts(id, 'comments', true);
+      // Fetch the post to get the owner
+      const post = await Post.findById(id);
+      // Fetch the actor's username
+      const actorName = await HttpClient.getUsernameById(userId);
+      if (post && post.user_id && post.user_id !== userId) {
+        await rabbitmq.sendToQueue('notification-events', {
+          type: 'comment',
+          actor_id: userId,
+          actor_name: actorName,
+          target_user_id: post.user_id,
+          post_id: id,
+          comment_id: comment.comment_id
+        });
+      }
       res.status(201).json({ status: 'success', data: comment });
     } catch (error) {
       next(error);
@@ -279,7 +307,19 @@ class PostController {
 
       const share = await PostShare.create(id, userId, platform);
       await Post.updateCounts(id, 'shares', true);
-      
+      // Fetch the post to get the owner
+      const post = await Post.findById(id);
+      // Fetch the actor's username
+      const actorName = await HttpClient.getUsernameById(userId);
+      if (post && post.user_id && post.user_id !== userId) {
+        await rabbitmq.sendToQueue('notification-events', {
+          type: 'share',
+          actor_id: userId,
+          actor_name: actorName,
+          target_user_id: post.user_id,
+          post_id: id
+        });
+      }
       res.status(201).json({ status: 'success', data: share });
     } catch (error) {
       next(error);
