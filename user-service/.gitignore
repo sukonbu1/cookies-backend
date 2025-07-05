@@ -13,6 +13,8 @@ yarn-error.log
 dist/
 build/
 
+__tests__/
+
 # IDE and editor files
 .idea/
 .vscode/

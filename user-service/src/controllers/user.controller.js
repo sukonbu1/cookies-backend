@@ -63,38 +63,27 @@ class UserController {
       next(error);
     }
   }
+
   async googleAuth(req, res, next) {
     try {
       const { idToken, user } = req.body;
-  
       if (!idToken) {
         return res.status(400).json({ message: 'ID token is required' });
       }
-  
+
       // Verify the ID token with Firebase Admin
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       
-      // Check if user exists in our database
+      // Check if user exists in your DB
       let existingUser = await User.findById(decodedToken.uid);
       
       if (!existingUser) {
-        // Generate username from email if not provided
-        let username = user.username;
-        if (!username && decodedToken.email) {
-          username = User.generateUsernameFromEmail(decodedToken.email);
-        }
-
-        // Ensure we have a username
-        if (!username) {
-          throw new Error('Unable to generate username from email');
-        }
-
         // Create new user if doesn't exist
         existingUser = await User.create({
           user_id: decodedToken.uid,
           email: decodedToken.email,
-          username: username,
-          avatar_url: user.photoURL || decodedToken.picture,
+          username: user?.username || decodedToken.email.split('@')[0],
+          avatar_url: user?.photoURL || decodedToken.picture,
           status: 'active'
         });
       } else {
@@ -145,6 +134,7 @@ class UserController {
       next(error);
     }
   }
+
   async getUser(req, res, next) {
     try {
       const { userId } = req.params;
@@ -390,6 +380,18 @@ class UserController {
         followerId,
         followingId
       });
+      // Emit notification event
+      if (followerId !== followingId) {
+        // Fetch the actor's username (User model is already imported)
+        const actor = await User.findById(followerId);
+        const actorName = actor ? actor.username : followerId;
+        await rabbitmq.sendToQueue('notification-events', {
+          type: 'follow',
+          actor_id: followerId,
+          actor_name: actorName,
+          target_user_id: followingId
+        });
+      }
       res.json({ message: 'Followed successfully' });
     } catch (err) {
       next(err);

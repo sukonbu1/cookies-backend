@@ -22,6 +22,7 @@ class RabbitMQClient {
   async sendToQueue(queue, message, options = {}) {
     await this.connect();
     await this.channel.assertQueue(queue, { durable: true });
+    console.log('sendToQueue called:', queue, message);
     this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), options);
   }
 
