@@ -37,7 +37,9 @@ class UserController {
       const { idToken } = req.body;
       if (!idToken) return res.status(400).json({ message: 'ID token required' });
       const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log('[LOGIN] Decoded Firebase UID:', decodedToken.uid);
       let user = await User.findById(decodedToken.uid);
+      console.log('[LOGIN] User from DB:', user);
       if (!user) {
         user = await User.create({
           user_id: decodedToken.uid,
@@ -70,24 +72,26 @@ class UserController {
       if (!idToken) {
         return res.status(400).json({ message: 'ID token is required' });
       }
-
-      // Verify the ID token with Firebase Admin
       const decodedToken = await admin.auth().verifyIdToken(idToken);
-      
-      // Check if user exists in your DB
+      console.log('[GOOGLE AUTH] Decoded Firebase UID:', decodedToken.uid);
       let existingUser = await User.findById(decodedToken.uid);
-      
+      console.log('[GOOGLE AUTH] User from DB:', existingUser);
       if (!existingUser) {
-        // Create new user if doesn't exist
+        let username = user.username;
+        if (!username && decodedToken.email) {
+          username = User.generateUsernameFromEmail(decodedToken.email);
+        }
+        if (!username) {
+          throw new Error('Unable to generate username from email');
+        }
         existingUser = await User.create({
           user_id: decodedToken.uid,
           email: decodedToken.email,
-          username: user?.username || decodedToken.email.split('@')[0],
-          avatar_url: user?.photoURL || decodedToken.picture,
+          username: username,
+          avatar_url: user.photoURL || decodedToken.picture,
           status: 'active'
         });
       } else {
-        // Update existing user info if needed
         const updates = {};
         if (user.username && user.username !== existingUser.username) {
           updates.username = user.username;
@@ -99,38 +103,27 @@ class UserController {
           existingUser = await User.update(decodedToken.uid, updates);
         }
       }
-  
       if (existingUser.status !== 'active') {
         return res.status(403).json({ message: 'Account is not active' });
       }
-  
-      // Create custom token for the user
       const customToken = await TokenUtils.createCustomToken(decodedToken.uid, {
         email: existingUser.email,
         role: existingUser.role || 'user'
       });
-  
-      // Set auth cookie
       TokenUtils.setAuthCookie(res, customToken);
-  
-      // Remove sensitive data
       const { password_hash, ...userWithoutPassword } = existingUser;
-      
       res.json({
         message: 'Google authentication successful',
         user: userWithoutPassword
       });
-  
     } catch (error) {
       console.error('Google auth error:', error);
-      
       if (error.code === 'auth/id-token-expired') {
         return res.status(401).json({ message: 'Token expired' });
       }
       if (error.code === 'auth/id-token-revoked') {
         return res.status(401).json({ message: 'Token revoked' });
       }
-      
       next(error);
     }
   }
