@@ -10,8 +10,9 @@ const Hashtag = require('../models/hashtag.model');
 const rabbitmq = require('../utils/rabbitmq.util');
 const PostService = require('../services/post.service');
 const HttpClient = require('../utils/http.util');
+const CacheUtil = require('../utils/cache.util');
 
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 60; // 1 minute (reduced from 5 minutes for better responsiveness)
 
 // Utility to extract hashtags from text (e.g. #food)
 function extractHashtags(text) {
@@ -61,6 +62,10 @@ class PostController {
       if (hashtags.length > 0) {
         await Hashtag.linkPostHashtags(post.post_id, hashtags);
       }
+      
+      // Invalidate user-related caches since post count changed
+      await CacheUtil.invalidateUserCache(userId);
+      
       // Emit event for post count update
       await rabbitmq.sendToQueue('post-events', {
         type: 'post_create',
@@ -164,6 +169,10 @@ class PostController {
       }
       const post = await Post.update(id, userId, updates);
       if (!post) return res.status(404).json({ status: 'error', message: 'Post not found or unauthorized' });
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Remove old hashtags and add new ones
       if (updates.description) {
         const hashtags = extractHashtags(updates.description);
@@ -182,6 +191,10 @@ class PostController {
       const userId = req.user.uid || req.user.userId;
       const deleted = await Post.delete(id, userId);
       if (!deleted) return res.status(404).json({ status: 'error', message: 'Post not found or unauthorized' });
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Emit event for post count update
       await rabbitmq.sendToQueue('post-events', {
         type: 'post_delete',
@@ -200,6 +213,10 @@ class PostController {
       const userId = req.user.uid || req.user.userId;
       const like = await PostLike.create(id, userId);
       await Post.updateCounts(id, 'likes', true);
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Emit event for like count update
       await rabbitmq.sendToQueue('post-events', {
         type: 'post_like',
@@ -230,6 +247,10 @@ class PostController {
       const userId = req.user.uid || req.user.userId;
       const unliked = await PostLike.delete(id, userId);
       await Post.updateCounts(id, 'likes', false);
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Emit event for like count update
       await rabbitmq.sendToQueue('post-events', {
         type: 'post_unlike',
@@ -248,6 +269,10 @@ class PostController {
       const { content, parent_comment_id } = req.body;
       const comment = await PostService.addComment(id, userId, content, parent_comment_id);
       await Post.updateCounts(id, 'comments', true);
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Fetch the post to get the owner
       const post = await Post.findById(id);
       // Fetch the actor's username
@@ -278,6 +303,9 @@ class PostController {
       if (!deleted) return res.status(404).json({ status: 'error', message: 'Comment not found or unauthorized' });
       if (comment && comment.post_id) {
         await Post.updateCounts(comment.post_id, 'comments', false);
+        
+        // Invalidate cache for this post
+        await CacheUtil.invalidatePostCache(comment.post_id);
       }
       res.json({ status: 'success', message: 'Comment deleted successfully' });
     } catch (error) {
@@ -307,6 +335,10 @@ class PostController {
 
       const share = await PostShare.create(id, userId, platform);
       await Post.updateCounts(id, 'shares', true);
+      
+      // Invalidate cache for this post
+      await CacheUtil.invalidatePostCache(id);
+      
       // Fetch the post to get the owner
       const post = await Post.findById(id);
       // Fetch the actor's username
