@@ -177,15 +177,33 @@ class Post {
 
   static async updateCounts(postId, type, increment = true) {
     const countField = `${type}_count`;
+    console.log(`[DEBUG] Updating ${countField} for post ${postId}, increment: ${increment}`);
+    
     const query = `
       UPDATE posts
-      SET ${countField} = ${countField} ${increment ? '+' : '-'} 1
+      SET ${countField} = ${countField} ${increment ? '+' : '-'} 1,
+          updated_at = CURRENT_TIMESTAMP
       WHERE post_id = $1
-      RETURNING *
+      RETURNING post_id, ${countField}, updated_at
     `;
 
-    const { rows } = await pool.query(query, [postId]);
-    return rows[0];
+    try {
+      const startTime = Date.now();
+      const { rows } = await pool.query(query, [postId]);
+      const duration = Date.now() - startTime;
+      console.log(`[DEBUG] updateCounts query took ${duration}ms for post ${postId}`);
+      
+      if (rows.length === 0) {
+        console.error(`[ERROR] No rows updated for post ${postId}`);
+        throw new Error(`Post ${postId} not found`);
+      }
+      
+      console.log(`[DEBUG] Successfully updated ${countField} for post ${postId}: ${rows[0][countField]}`);
+      return rows[0];
+    } catch (error) {
+      console.error(`[ERROR] Failed to update ${countField} for post ${postId}:`, error);
+      throw error;
+    }
   }
 
   static async searchPosts(query, pagination = {}) {

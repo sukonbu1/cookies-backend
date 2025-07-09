@@ -8,8 +8,9 @@ class CacheUtil {
   static async invalidatePostCache(postId) {
     try {
       const cacheKey = `post:${postId}`;
-      await redis.del(cacheKey);
-      console.log(`Cache invalidated for post: ${postId}`);
+      console.log(`[DEBUG] Invalidating cache for post: ${postId}, key: ${cacheKey}`);
+      const result = await redis.del(cacheKey);
+      console.log(`[DEBUG] Cache invalidation result for post ${postId}: ${result} keys deleted`);
     } catch (error) {
       console.error('Error invalidating post cache:', error);
     }
@@ -22,10 +23,13 @@ class CacheUtil {
   static async invalidateUserCache(userId) {
     try {
       const pattern = `user:${userId}:*`;
+      console.log(`[DEBUG] Invalidating user cache for user: ${userId}, pattern: ${pattern}`);
       const keys = await this.getKeys(pattern);
       if (keys.length > 0) {
-        await redis.del(...keys);
-        console.log(`Cache invalidated for user: ${userId}, keys: ${keys.length}`);
+        const result = await redis.del(...keys);
+        console.log(`[DEBUG] Cache invalidation result for user ${userId}: ${result} keys deleted`);
+      } else {
+        console.log(`[DEBUG] No cache keys found for user ${userId}`);
       }
     } catch (error) {
       console.error('Error invalidating user cache:', error);
@@ -53,10 +57,13 @@ class CacheUtil {
   static async clearAllPostCaches() {
     try {
       const pattern = 'post:*';
+      console.log(`[DEBUG] Clearing all post caches with pattern: ${pattern}`);
       const keys = await this.getKeys(pattern);
       if (keys.length > 0) {
-        await redis.del(...keys);
-        console.log(`Cleared ${keys.length} post cache keys`);
+        const result = await redis.del(...keys);
+        console.log(`[DEBUG] Cleared ${result} post cache keys`);
+      } else {
+        console.log(`[DEBUG] No post cache keys found to clear`);
       }
     } catch (error) {
       console.error('Error clearing post caches:', error);

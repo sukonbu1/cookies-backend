@@ -15,6 +15,7 @@ router.get('/', postController.getAllPosts);
 router.get('/search', postController.searchPosts);
 router.get('/user/:userId', postController.getUserPosts);
 router.get('/:id', postController.getPostById);
+router.get('/:id/fresh', postController.getFreshPostById); // New route for fresh data
 router.post('/', 
   authMiddleware.verifyToken,
   postValidation,

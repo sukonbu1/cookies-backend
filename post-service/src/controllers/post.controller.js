@@ -92,17 +92,71 @@ class PostController {
   async getPostById(req, res, next) {
     try {
       const { id } = req.params;
+      const { refresh } = req.query; // Add refresh parameter to bypass cache
       const cacheKey = `post:${id}`;
+      console.log(`[DEBUG] Getting post ${id}, checking cache key: ${cacheKey}`);
+      
+      // If refresh parameter is provided, skip cache
+      if (refresh === 'true') {
+        console.log(`[DEBUG] Force refresh requested for post ${id}, bypassing cache`);
+        await CacheUtil.invalidatePostCache(id);
+      }
+      
       const cached = await redis.get(cacheKey);
-      if (cached) return res.json(JSON.parse(cached));
+      if (cached) {
+        console.log(`[DEBUG] Cache HIT for post ${id}, returning cached data`);
+        return res.json(JSON.parse(cached));
+      }
+      
+      console.log(`[DEBUG] Cache MISS for post ${id}, fetching from database`);
+      const startTime = Date.now();
+      
       // Use service layer to get post with comments and likes
       const post = await PostService.getPostById(id);
+      
+      console.log(`[DEBUG] Database fetch took ${Date.now() - startTime}ms for post ${id}`);
+      
       // Get real-time views from Redis
       const redisKey = `post:${id}:views`;
       const redisViews = parseInt(await redis.get(redisKey) || '0', 10);
       post.views_count = (post.views_count || 0) + redisViews;
+      
       const response = { status: 'success', data: post };
       await redis.set(cacheKey, JSON.stringify(response), 'EX', CACHE_TTL);
+      console.log(`[DEBUG] Cached post ${id} for ${CACHE_TTL} seconds`);
+      
+      res.json(response);
+    } catch (error) {
+      if (error.message === 'Post not found') {
+        return res.status(404).json({ status: 'error', message: 'Post not found' });
+      }
+      next(error);
+    }
+  }
+
+  // New method to get fresh post data without cache
+  async getFreshPostById(req, res, next) {
+    try {
+      const { id } = req.params;
+      console.log(`[DEBUG] Getting fresh post data for ${id}`);
+      
+      // Force invalidate cache
+      await CacheUtil.invalidatePostCache(id);
+      
+      const startTime = Date.now();
+      
+      // Use service layer to get post with comments and likes
+      const post = await PostService.getPostById(id);
+      
+      console.log(`[DEBUG] Fresh database fetch took ${Date.now() - startTime}ms for post ${id}`);
+      
+      // Get real-time views from Redis
+      const redisKey = `post:${id}:views`;
+      const redisViews = parseInt(await redis.get(redisKey) || '0', 10);
+      post.views_count = (post.views_count || 0) + redisViews;
+      
+      const response = { status: 'success', data: post };
+      
       res.json(response);
     } catch (error) {
       if (error.message === 'Post not found') {
@@ -212,7 +266,7 @@ class PostController {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
       const like = await PostLike.create(id, userId);
-      await Post.updateCounts(id, 'likes', true);
+      const updatedPost = await Post.updateCounts(id, 'likes', true);
       
       // Invalidate cache for this post
       await CacheUtil.invalidatePostCache(id);
@@ -222,6 +276,7 @@ class PostController {
         type: 'post_like',
         postId: id
       });
+      
       // Fetch the post to get the owner
       const post = await Post.findById(id);
       // Fetch the actor's username
@@ -235,7 +290,16 @@ class PostController {
           post_id: id
         });
       }
-      res.json({ status: 'success', data: like });
+      
+      // Return the updated post data immediately
+      res.json({ 
+        status: 'success', 
+        data: like,
+        updatedPost: {
+          post_id: id,
+          likes_count: updatedPost.likes_count
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -246,7 +310,7 @@ class PostController {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
       const unliked = await PostLike.delete(id, userId);
-      await Post.updateCounts(id, 'likes', false);
+      const updatedPost = await Post.updateCounts(id, 'likes', false);
       
       // Invalidate cache for this post
       await CacheUtil.invalidatePostCache(id);
@@ -256,7 +320,17 @@ class PostController {
         type: 'post_unlike',
         postId: id
       });
-      res.json({ status: 'success', message: 'Post unliked successfully', data: unliked });
+      
+      // Return the updated post data immediately
+      res.json({ 
+        status: 'success', 
+        message: 'Post unliked successfully', 
+        data: unliked,
+        updatedPost: {
+          post_id: id,
+          likes_count: updatedPost.likes_count
+        }
+      });
     } catch (error) {
       next(error);
     }
