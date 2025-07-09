@@ -265,11 +265,27 @@ class PostController {
     try {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
+      console.log(`[DEBUG] Like request for post ${id} by user ${userId}`);
+      
       const like = await PostLike.create(id, userId);
+      console.log(`[DEBUG] Like created successfully`);
+      
       const updatedPost = await Post.updateCounts(id, 'likes', true);
+      console.log(`[DEBUG] Post counts updated, new like count: ${updatedPost.likes_count}`);
       
       // Invalidate cache for this post
+      console.log(`[DEBUG] Attempting to invalidate cache for post ${id}`);
       await CacheUtil.invalidatePostCache(id);
+      console.log(`[DEBUG] Cache invalidation completed for post ${id}`);
+      
+      // Verify cache is actually cleared
+      const cacheKey = `post:${id}`;
+      const cachedAfterInvalidation = await redis.get(cacheKey);
+      if (cachedAfterInvalidation) {
+        console.log(`[WARNING] Cache still exists after invalidation for post ${id}`);
+      } else {
+        console.log(`[DEBUG] Cache successfully cleared for post ${id}`);
+      }
       
       // Emit event for like count update
       await rabbitmq.sendToQueue('post-events', {
@@ -301,6 +317,7 @@ class PostController {
         }
       });
     } catch (error) {
+      console.error(`[ERROR] Error in likePost for post ${req.params.id}:`, error);
       next(error);
     }
   }
