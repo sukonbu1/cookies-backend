@@ -81,6 +81,60 @@ class RecipeController {
       next(error);
     }
   }
+
+  async getRecipesByUserId(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const limit = parseInt(req.query.limit) || 10;
+      const offset = parseInt(req.query.offset) || 0;
+      
+      // Validate pagination parameters
+      if (limit < 1 || limit > 100) {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'Limit must be between 1 and 100' 
+        });
+      }
+      
+      if (offset < 0) {
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'Offset must be non-negative' 
+        });
+      }
+
+      const recipes = await Recipe.findByUserId(userId, limit, offset);
+      const totalCount = await Recipe.countByUserId(userId);
+      
+      // Get ingredients and steps for each recipe
+      const recipesWithDetails = await Promise.all(
+        recipes.map(async (recipe) => {
+          const ingredients = await RecipeIngredient.findByRecipeId(recipe.recipe_id);
+          const steps = await RecipeStep.findByRecipeId(recipe.recipe_id);
+          return {
+            ...recipe,
+            ingredients,
+            steps
+          };
+        })
+      );
+
+      res.json({
+        status: 'success',
+        data: {
+          recipes: recipesWithDetails,
+          pagination: {
+            total: totalCount,
+            limit,
+            offset,
+            hasMore: offset + limit < totalCount
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new RecipeController(); 

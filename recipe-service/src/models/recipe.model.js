@@ -5,13 +5,14 @@ class Recipe {
   static async create(recipeData, client = pool) {
     const query = `
       INSERT INTO "recipes" (
-        recipe_id, post_id, name, cover_media_url, cuisine_type, meal_type, preparation_time, cooking_time, total_time, is_premium, premium_price, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        recipe_id, post_id, user_id, name, cover_media_url, cuisine_type, meal_type, preparation_time, cooking_time, total_time, is_premium, premium_price, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const values = [
       uuidv4(),
       recipeData.post_id,
+      recipeData.user_id,
       recipeData.name,
       recipeData.cover_media_url || null,
       recipeData.cuisine_type || null,
@@ -57,6 +58,27 @@ class Recipe {
     const query = 'DELETE FROM "recipes" WHERE recipe_id = $1';
     const { rowCount } = await pool.query(query, [recipeId]);
     return rowCount > 0;
+  }
+
+  static async findByUserId(userId, limit = 10, offset = 0) {
+    const query = `
+      SELECT * FROM "recipes"
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+    const { rows } = await pool.query(query, [userId, limit, offset]);
+    return rows;
+  }
+
+  static async countByUserId(userId) {
+    const query = `
+      SELECT COUNT(*) as total
+      FROM "recipes"
+      WHERE user_id = $1
+    `;
+    const { rows } = await pool.query(query, [userId]);
+    return parseInt(rows[0].total);
   }
 }
 
