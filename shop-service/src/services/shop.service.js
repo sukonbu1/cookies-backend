@@ -1,8 +1,8 @@
 const Shop = require('../models/shop.model');
 
 class ShopService {
-  static async createShop(shopData, client) {
-    return Shop.create(shopData, client);
+  static async createShop(shopData) {
+    return Shop.create(shopData);
   }
 
   static async getShopById(shopId) {

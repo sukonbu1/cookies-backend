@@ -1,7 +1,7 @@
 const pool = require('../../../common/src/config/database');
 
 class Shop {
-  static async create(shopData, client) {
+  static async create(shopData) {
     const query = `
       INSERT INTO shops (
         user_id, name, description, contact_email, contact_phone,
@@ -25,7 +25,7 @@ class Shop {
       shopData.status || 'active',
       shopData.is_verified || false
     ];
-    const { rows } = await client.query(query, values);
+    const { rows } = await pool.query(query, values);
     return rows[0];
   }
 
