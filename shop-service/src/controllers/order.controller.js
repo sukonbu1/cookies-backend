@@ -39,6 +39,24 @@ class OrderController {
     }
   }
 
+  async getOrdersByShop(req, res, next) {
+    try {
+      const { shopId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const filters = {};
+      
+      if (req.query.order_status) filters.order_status = req.query.order_status;
+      if (req.query.payment_status) filters.payment_status = req.query.payment_status;
+      if (req.query.shipping_status) filters.shipping_status = req.query.shipping_status;
+      
+      const orders = await OrderService.getOrdersByShop(shopId, filters, { page, limit });
+      res.json({ status: 'success', data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateOrder(req, res, next) {
     try {
       const order = await OrderService.updateOrder(req.params.id, req.body);

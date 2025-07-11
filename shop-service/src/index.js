@@ -11,6 +11,7 @@ require('dotenv').config();
 const shopRoutes = require('./routes/shop.routes');
 const orderRoutes = require('./routes/order.routes');
 const paymentRoutes = require('./routes/payment.routes');
+const productRoutes = require('./routes/product.routes');
 const { errorHandler } = require('./middleware/error.middleware');
 
 const app = express();
@@ -76,6 +77,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/shops', shopRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/products', productRoutes);
 
 // Handle preflight requests explicitly
 app.options('*', cors());
