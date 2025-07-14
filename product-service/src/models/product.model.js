@@ -99,7 +99,7 @@ class Product {
     if (filters.category_id) {
       values.push(filters.category_id);
       conditions.push(`p.product_id IN (
-        SELECT product_id FROM "ProductCategorization" 
+        SELECT product_id FROM "productcategorization" 
         WHERE category_id = $${values.length}
       )`);
     }
