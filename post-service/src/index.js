@@ -29,10 +29,10 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173,',
-  'http://localhost:3000',
   'http://103.253.145.7',
   'https://103.253.145.7',
   'http://103.253.145.7:5173',
+  'https://cookiesnext.duckdns.org',
 ];
 
 app.use(cors({

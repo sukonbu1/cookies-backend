@@ -12,7 +12,7 @@ yarn-error.log
 # Build output
 dist/
 build/
-
+set-firebase-password.js
 __tests__/
 
 # IDE and editor files
