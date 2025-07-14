@@ -3,6 +3,7 @@ const ProductImage = require('../models/productImage.model');
 const ProductVariant = require('../models/productVariant.model');
 const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
+const ProductCategorization = require('../models/productCategorization.model');
 
 class ProductController {
   async getAllProducts(req, res, next) {
@@ -61,8 +62,10 @@ class ProductController {
       };
       const images = req.body.images || [];
       const variants = req.body.variants || [];
+      const category_id = req.body.category_id; // extract category_id
       delete productData.images;
       delete productData.variants;
+      delete productData.category_id; // remove from productData
       const product = await Product.create(productData);
       // Save images if provided
       if (Array.isArray(images)) {
@@ -85,6 +88,14 @@ class ProductController {
             ...variant
           });
         }
+      }
+      // Insert into productcategorization if category_id is provided
+      if (category_id) {
+        await ProductCategorization.create({
+          product_id: product.product_id,
+          category_id,
+          is_primary: true
+        });
       }
       res.status(201).json({
         status: 'success',
