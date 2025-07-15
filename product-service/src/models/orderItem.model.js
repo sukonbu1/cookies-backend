@@ -5,10 +5,10 @@ class OrderItem {
   static async create(itemData, client = pool) {
     const query = `
       INSERT INTO "orderitems" (
-        order_item_id, order_id, product_id, shop_id, quantity, 
+        order_item_id, order_id, product_id, shop_id, variant_id, quantity, 
         unit_price, total_price, discount_amount, tax_amount, status, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const values = [
@@ -16,6 +16,7 @@ class OrderItem {
       itemData.order_id,
       itemData.product_id,
       itemData.shop_id,
+      itemData.variant_id,
       itemData.quantity,
       itemData.unit_price,
       itemData.total_price,
