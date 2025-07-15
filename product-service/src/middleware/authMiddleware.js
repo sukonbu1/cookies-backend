@@ -4,7 +4,7 @@ const authMiddleware = {
   verifyToken: async (req, res, next) => {
     console.log('Auth middleware called for', req.method, req.originalUrl);
     try {
-      // Try to get token from cookie or Authorization header
+      // Get token from cookie or Authorization header
       let token = req.cookies.token;
       if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
         token = req.headers.authorization.split(' ')[1];

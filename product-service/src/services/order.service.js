@@ -14,6 +14,7 @@ class OrderService {
 
       // 1. Calculate totals and check stock
       let subtotal = 0;
+      let tax_amount = 0;
       const processedItems = [];
 
       for (const item of items) {
@@ -30,7 +31,10 @@ class OrderService {
         }
         const unit_price = parseFloat(variant.price);
         const total_price = unit_price * item.quantity;
+
+        const item_tax = total_price * 0.08; // 8% tax
         subtotal += total_price;
+        tax_amount += item_tax;
         
         processedItems.push({
           ...item,
@@ -45,9 +49,7 @@ class OrderService {
         await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
 
-      // Assume total_amount is subtotal for simplicity. 
-      // In a real app, this would include taxes, shipping, etc.
-      const total_amount = subtotal;
+      const total_amount = subtotal + tax_amount;
 
       // 2. Create the Order
       const newOrderData = {
@@ -55,6 +57,7 @@ class OrderService {
         user_id,
         order_number: `ORD-${Date.now()}`,
         subtotal,
+        tax_amount,
         total_amount,
       };
       const newOrder = await Order.create(newOrderData, client);
