@@ -73,6 +73,12 @@ class Order {
   }
 
   static async update(orderId, updateData) {
+    // Handle completed_at logic
+    if (updateData.order_status === 'completed') {
+      updateData.completed_at = new Date();
+    } else if (updateData.order_status && updateData.order_status !== 'completed') {
+      updateData.completed_at = null;
+    }
     const setClause = Object.keys(updateData)
       .map((key, idx) => `${key} = $${idx + 2}`)
       .join(', ');
