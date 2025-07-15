@@ -58,18 +58,16 @@ async function startConsumer() {
       let refId = event.post_id || null;
       if (event.type === 'follow') {
         refType = 'user';
-        refId = event.target_user_id; // Use the user's own ID for aggregation and frontend redirect
+        refId = event.target_user_id;
       }
       notification.reference_type = refType;
       notification.reference_id = refId;
 
-      // Aggregation logic for all types
       const existing = await findUnreadAggregated(
         event.target_user_id, event.type, refType, refId
       );
       if (existing) {
         let actors = Array.isArray(existing.actors) ? existing.actors : JSON.parse(existing.actors || '[]');
-        // Use actor_name for display, but avoid duplicates
         if (!actors.includes(event.actor_name)) actors.push(event.actor_name);
         const content = formatContent(event.type, actors, refType);
         const updated = await updateAggregatedNotification(existing.notification_id, actors, actors.length, content);
@@ -99,7 +97,7 @@ async function startConsumer() {
       }
 
       const saved = await createNotification(notification);
-      sendNotification(notification.user_id, saved); // Real-time push
+      sendNotification(notification.user_id, saved);
       channel.ack(msg);
     }
   });

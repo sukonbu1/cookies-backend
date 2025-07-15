@@ -8,17 +8,12 @@ class OrderService {
   static async createOrder(orderData) {
     const { user_id, items, ...restOfOrderData } = orderData;
     const client = await pool.connect();
-    
     try {
       await client.query('BEGIN');
-
-      // 1. Calculate totals and check stock
       let subtotal = 0;
       let tax_amount = 0;
       const processedItems = [];
-
       for (const item of items) {
-        // Require variant_id for each item
         if (!item.variant_id) {
           throw new Error('Each order item must include a variant_id.');
         }
@@ -31,27 +26,20 @@ class OrderService {
         }
         const unit_price = parseFloat(variant.price);
         const total_price = unit_price * item.quantity;
-
-        const item_tax = total_price * 0.08; // 8% tax
+        const item_tax = total_price * 0.08;
         subtotal += total_price;
         tax_amount += item_tax;
-        
         processedItems.push({
           ...item,
           product_id: variant.product_id,
           unit_price,
           total_price,
-          shop_id: item.shop_id || null, // Optionally fetch from product if needed
+          shop_id: item.shop_id || null,
           variant_id: item.variant_id
         });
-
-        // Update stock here, inside the loop
         await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
-
       const total_amount = subtotal + tax_amount;
-
-      // 2. Create the Order
       const newOrderData = {
         ...restOfOrderData,
         user_id,
@@ -61,8 +49,6 @@ class OrderService {
         total_amount,
       };
       const newOrder = await Order.create(newOrderData, client);
-
-      // 3. Create Order Items and update stock
       const orderItems = [];
       for (const item of processedItems) {
         const orderItemData = {
@@ -72,11 +58,8 @@ class OrderService {
         const newOrderItem = await OrderItem.create(orderItemData, client);
         orderItems.push(newOrderItem);
       }
-
       await client.query('COMMIT');
-
       return { ...newOrder, items: orderItems };
-
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -108,7 +91,6 @@ class OrderService {
   }
 
   static async getOrdersByShopWithDetails(shop_id, pagination) {
-    // Find all order IDs that have at least one item for this shop
     const orderIdsQuery = `
       SELECT DISTINCT order_id FROM orderitems WHERE shop_id = $1
       LIMIT $2 OFFSET $3
@@ -119,11 +101,9 @@ class OrderService {
     const { rows: orderIdRows } = await pool.query(orderIdsQuery, [shop_id, limit, offset]);
     const orderIds = orderIdRows.map(r => r.order_id);
     if (orderIds.length === 0) return [];
-    // Fetch orders and their detailed items
     const orders = await Promise.all(orderIds.map(async (order_id) => {
       const order = await Order.findById(order_id);
       const items = await OrderItem.findDetailedByOrderId(order_id);
-      // Only include items for this shop
       const shopItems = items.filter(item => item.shop_id === shop_id);
       return { ...order, items: shopItems };
     }));

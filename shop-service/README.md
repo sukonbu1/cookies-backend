@@ -27,37 +27,6 @@ This is the **Shop Service** for the platform. It manages shop creation, updates
 - dotenv
 - helmet, morgan, cors
 
-## Setup
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Configure environment variables:**
-   - Copy `.env` and fill in the required values (Database, Redis, JWT, RabbitMQ, etc.)
-
-   Example `.env`:
-   ```env
-   DATABASE_URL=postgresql://<username>:<password>@<neon_host>/<database>?sslmode=require
-   JWT_SECRET=your_production_jwt_secret
-   REDIS_URL=redis://localhost:6379
-   RABBITMQ_URL=amqp://<rabbitmq_user>:<rabbitmq_password>@<rabbitmq_host>:5672
-   USER_SERVICE_URL=https://your-user-service-domain/api/users
-   CORS_ORIGIN=https://your-frontend-domain
-   NODE_ENV=production
-   PORT=3002
-   ```
-
-3. **Run the service:**
-   ```bash
-   npm run dev
-   ```
-   or
-   ```bash
-   npm start
-   ```
-
 ## API Endpoints
 
 ### Shop Endpoints
@@ -96,22 +65,6 @@ This is the **Shop Service** for the platform. It manages shop creation, updates
   - `services/` - Business logic
   - `utils/` - Utility functions
   - `config/` - Configuration files
-
-## Deployment Notes
-- Use NeonDB for production PostgreSQL (ensure `sslmode=require` in your connection string).
-- Use Docker or native install for RabbitMQ on your VPS. Set `RABBITMQ_URL` accordingly.
-- Use a process manager like `pm2` or `systemd` to keep the service running.
-- Open required ports (3002 for API, 5672 for RabbitMQ, 15672 for RabbitMQ UI if needed).
-- Never commit your `.env` file to git.
-
-## Quick Deployment Checklist
-- [ ] Push code to VPS
-- [ ] Install dependencies: `npm install`
-- [ ] Set up `.env` with NeonDB, RabbitMQ, JWT, etc.
-- [ ] Start RabbitMQ (Docker or native)
-- [ ] Start Redis (if used)
-- [ ] Start the service: `npm start` or with `pm2`
-- [ ] Test endpoints and logs
 
 ## License
 ISC 
