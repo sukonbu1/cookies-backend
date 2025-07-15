@@ -25,6 +25,8 @@ router.use(authMiddleware.verifyToken);
 // Routes
 router.post('/', createOrderValidation, orderController.createOrder);
 router.get('/', orderController.getAllOrders);
+router.get('/user', orderController.getOrdersByUser);
+router.get('/shop/:shopId', orderController.getOrdersByShop);
 router.get('/:id', idValidation, orderController.getOrderById);
 router.put('/:id', idValidation, orderController.updateOrder);
 router.delete('/:id', idValidation, orderController.deleteOrder);

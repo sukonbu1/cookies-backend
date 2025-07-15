@@ -40,6 +40,9 @@ class OrderService {
           shop_id: item.shop_id || null, // Optionally fetch from product if needed
           variant_id: item.variant_id
         });
+
+        // Update stock here, inside the loop
+        await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
 
       // Assume total_amount is subtotal for simplicity. 
@@ -65,9 +68,6 @@ class OrderService {
         };
         const newOrderItem = await OrderItem.create(orderItemData, client);
         orderItems.push(newOrderItem);
-
-        // Decrement variant stock
-        await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
 
       await client.query('COMMIT');
@@ -85,12 +85,46 @@ class OrderService {
   static async getOrderById(orderId) {
     const order = await Order.findById(orderId);
     if (!order) return null;
-    const items = await OrderItem.findByOrderId(orderId);
+    const items = await OrderItem.findDetailedByOrderId(orderId);
     return { ...order, items };
+  }
+
+  static async getOrdersWithDetails(filters, pagination) {
+    const orders = await Order.findAll(filters, pagination);
+    const detailedOrders = await Promise.all(
+      orders.map(async (order) => {
+        const items = await OrderItem.findDetailedByOrderId(order.order_id);
+        return { ...order, items };
+      })
+    );
+    return detailedOrders;
   }
 
   static async getAllOrders(filters, pagination) {
     return Order.findAll(filters, pagination);
+  }
+
+  static async getOrdersByShopWithDetails(shop_id, pagination) {
+    // Find all order IDs that have at least one item for this shop
+    const orderIdsQuery = `
+      SELECT DISTINCT order_id FROM orderitems WHERE shop_id = $1
+      LIMIT $2 OFFSET $3
+    `;
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 10;
+    const offset = (page - 1) * limit;
+    const { rows: orderIdRows } = await pool.query(orderIdsQuery, [shop_id, limit, offset]);
+    const orderIds = orderIdRows.map(r => r.order_id);
+    if (orderIds.length === 0) return [];
+    // Fetch orders and their detailed items
+    const orders = await Promise.all(orderIds.map(async (order_id) => {
+      const order = await Order.findById(order_id);
+      const items = await OrderItem.findDetailedByOrderId(order_id);
+      // Only include items for this shop
+      const shopItems = items.filter(item => item.shop_id === shop_id);
+      return { ...order, items: shopItems };
+    }));
+    return orders;
   }
 
   static async updateOrder(orderId, updateData) {

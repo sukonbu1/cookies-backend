@@ -32,6 +32,19 @@ class OrderItem {
     const { rows } = await pool.query(query, [orderId]);
     return rows;
   }
+
+  static async findDetailedByOrderId(orderId) {
+    const query = `
+      SELECT oi.order_item_id, oi.product_id, p.name as product_name, oi.quantity, oi.variant_id,
+             v.sku, v.price, v.sale_price, v.color, v.size, v.material, oi.shop_id
+      FROM "orderitems" oi
+      LEFT JOIN "products" p ON oi.product_id = p.product_id
+      LEFT JOIN "productvariants" v ON oi.variant_id = v.variant_id
+      WHERE oi.order_id = $1
+    `;
+    const { rows } = await pool.query(query, [orderId]);
+    return rows;
+  }
 }
 
 module.exports = OrderItem; 

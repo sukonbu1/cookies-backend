@@ -34,14 +34,35 @@ class OrderController {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const filters = {};
-      
-      // Filter by current user if not an admin (in a real app, you'd check role)
       filters.user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
       if (req.query.order_status) {
         filters.order_status = req.query.order_status;
       }
-
       const orders = await OrderService.getAllOrders(filters, { page, limit });
+      res.json({ status: 'success', data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getOrdersByUser(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const filters = { user_id: req.user.uid || req.user.userId || req.user.id || req.user.sub };
+      const orders = await OrderService.getOrdersWithDetails(filters, { page, limit });
+      res.json({ status: 'success', data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getOrdersByShop(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const shopId = req.params.shopId;
+      const orders = await OrderService.getOrdersByShopWithDetails(shopId, { page, limit });
       res.json({ status: 'success', data: orders });
     } catch (error) {
       next(error);
