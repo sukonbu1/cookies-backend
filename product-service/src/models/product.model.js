@@ -54,9 +54,20 @@ class Product {
                  )
                ) FILTER (WHERE pi.image_id IS NOT NULL),
                '[]'
-             ) as images
+             ) as images,
+             COALESCE(
+               json_agg(
+                 DISTINCT jsonb_build_object(
+                   'category_id', pc.category_id,
+                   'name', c.name
+                 )
+               ) FILTER (WHERE pc.category_id IS NOT NULL),
+               '[]'
+             ) as categories
       FROM "products" p
       LEFT JOIN "productimages" pi ON p.product_id = pi.product_id
+      LEFT JOIN "productcategorization" pc ON p.product_id = pc.product_id
+      LEFT JOIN "productcategories" c ON pc.category_id = c.category_id
       WHERE p.product_id = $1
       GROUP BY p.product_id
     `;
@@ -80,9 +91,20 @@ class Product {
                  )
                ) FILTER (WHERE pi.image_id IS NOT NULL),
                '[]'
-             ) as images
+             ) as images,
+             COALESCE(
+               json_agg(
+                 DISTINCT jsonb_build_object(
+                   'category_id', pc.category_id,
+                   'name', c.name
+                 )
+               ) FILTER (WHERE pc.category_id IS NOT NULL),
+               '[]'
+             ) as categories
       FROM "products" p
       LEFT JOIN "productimages" pi ON p.product_id = pi.product_id
+      LEFT JOIN "productcategorization" pc ON p.product_id = pc.product_id
+      LEFT JOIN "productcategories" c ON pc.category_id = c.category_id
     `;
 
     const values = [];
