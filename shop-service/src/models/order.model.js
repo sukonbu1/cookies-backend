@@ -123,6 +123,46 @@ class Order {
     const { rows } = await pool.query(query, [orderId]);
     return rows.length > 0;
   }
+
+  static async findByShopIdViaOrderItems(shopId, filters = {}, pagination = {}) {
+    let query = `
+      SELECT DISTINCT o.*
+      FROM orders o
+      JOIN orderitems oi ON o.order_id = oi.order_id
+      WHERE oi.shop_id = $1
+    `;
+    const values = [shopId];
+    const conditions = [];
+
+    if (filters.order_status) {
+      values.push(filters.order_status);
+      conditions.push(`o.order_status = $${values.length}`);
+    }
+    if (filters.payment_status) {
+      values.push(filters.payment_status);
+      conditions.push(`o.payment_status = $${values.length}`);
+    }
+    if (filters.shipping_status) {
+      values.push(filters.shipping_status);
+      conditions.push(`o.shipping_status = $${values.length}`);
+    }
+
+    if (conditions.length > 0) {
+      query += ' AND ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY o.created_at DESC';
+
+    // Pagination
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 10;
+    const offset = (page - 1) * limit;
+    query += ` OFFSET $${values.length + 1} LIMIT $${values.length + 2}`;
+    values.push(offset, limit);
+
+    const { rows } = await pool.query(query, values);
+    return rows;
+  }
 }
 
 class OrderItem {

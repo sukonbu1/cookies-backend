@@ -14,7 +14,7 @@ class OrderService {
   }
 
   static async getOrdersByShop(shopId, filters, pagination) {
-    return Order.findByShopId(shopId, filters, pagination);
+    return Order.findByShopIdViaOrderItems(shopId, filters, pagination);
   }
 
   static async updateOrder(orderId, updateData) {
