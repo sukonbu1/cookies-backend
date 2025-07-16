@@ -39,7 +39,12 @@ class OrderService {
         });
         await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
-      const total_amount = subtotal + tax_amount;
+      // Use total_amount from request if provided, otherwise calculate
+      let total_amount = restOfOrderData.total_amount;
+      if (typeof total_amount === 'undefined' || total_amount === null) {
+        total_amount = subtotal + tax_amount;
+      }
+
       const newOrderData = {
         ...restOfOrderData,
         user_id,
