@@ -86,7 +86,7 @@ router.post('/google-auth', userController.googleAuth);
 
 // Get the authenticated user's shipping address
 router.get('/shipping-address', authenticate, async (req, res) => {
-  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const user_id = req.user.user_id;
   const address = await ShippingAddress.findByUserId(user_id);
   if (!address) {
     return res.status(404).json({ status: 'error', message: 'Shipping address not found' });
@@ -96,7 +96,7 @@ router.get('/shipping-address', authenticate, async (req, res) => {
 
 // Update the authenticated user's shipping address
 router.put('/shipping-address', authenticate, async (req, res) => {
-  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const user_id = req.user.user_id;
   const updateData = { ...req.body };
   const address = await ShippingAddress.updateByUserId(user_id, updateData);
   res.json({ status: 'success', data: address });
@@ -104,7 +104,7 @@ router.put('/shipping-address', authenticate, async (req, res) => {
 
 // Create the authenticated user's shipping address if not exists
 router.post('/shipping-address', authenticate, async (req, res) => {
-  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const user_id = req.user.user_id;
   const existing = await ShippingAddress.findByUserId(user_id);
   if (existing) {
     return res.status(400).json({ status: 'error', message: 'Shipping address already exists' });
