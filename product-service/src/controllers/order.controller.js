@@ -15,7 +15,7 @@ class OrderController {
       // After order is created and before sending the response:
       console.log('Publishing order notification event:', {
         type: 'order',
-        target_user_id: shop_id,
+        target_user_id: orderData.shop_id,
         actor_name: user_id,
         order_id: order.order_id,
         order_number: order.order_number,
@@ -23,7 +23,7 @@ class OrderController {
       });
       await sendToQueue('notification-events', {
         type: 'order',
-        target_user_id: shop_id,
+        target_user_id: orderData.shop_id,
         actor_name: user_id,
         order_id: order.order_id,
         order_number: order.order_number,
