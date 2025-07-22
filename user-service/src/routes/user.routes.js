@@ -5,6 +5,8 @@ const userController = require('../controllers/user.controller');
 const { validateRequest } = require('../middleware/validation.middleware');
 const { authenticate } = require('../middleware/auth.middleware');
 const User = require('../models/user.model');
+const ShippingAddress = require('../models/shippingAddress.model');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Validation schemas
 const registerSchema = [
@@ -83,5 +85,23 @@ router.get('/:id/following', userController.getFollowing);
 router.post('/email-by-username', userController.getEmailByUsername);
 
 router.post('/google-auth', userController.googleAuth);
+
+// Get the authenticated user's shipping address
+router.get('/shipping-address', authMiddleware.verifyToken, async (req, res) => {
+  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const address = await ShippingAddress.findByUserId(user_id);
+  if (!address) {
+    return res.status(404).json({ status: 'error', message: 'Shipping address not found' });
+  }
+  res.json({ status: 'success', data: address });
+});
+
+// Update the authenticated user's shipping address
+router.put('/shipping-address', authMiddleware.verifyToken, async (req, res) => {
+  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const updateData = { ...req.body };
+  const address = await ShippingAddress.updateByUserId(user_id, updateData);
+  res.json({ status: 'success', data: address });
+});
 
 module.exports = router; 

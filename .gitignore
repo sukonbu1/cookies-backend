@@ -25,17 +25,25 @@ user-service/node_modules/
 post-service/uploads/
 post-service/node_modules/
 post-service/test-cache.js
+post-service/.env
 shop-service/uploads/
 shop-service/node_modules/
 product-service/uploads/
 product-service/node_modules/
 common/node_modules/
 common/src/config/serviceAccountKey.json
+notification-service/node_modules/
+notification-service/uploads/
+notification-service/.env
+product-service/.env
+shop-service/.env
+user-service/.env
 
 # Ignore environment files
 **/.env
 **/.env.local
 **/.env.production
+**/.env.development
 
 # Ignore logs
 **/logs/
