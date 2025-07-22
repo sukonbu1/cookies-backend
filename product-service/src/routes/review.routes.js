@@ -81,7 +81,5 @@ router.post('/:reviewId/like', authMiddleware.verifyToken, idValidation, reviewC
 router.delete('/:reviewId/like', authMiddleware.verifyToken, idValidation, reviewController.unlikeReview);
 
 // Admin routes (for moderation)
-router.patch('/:reviewId/approve', authMiddleware.verifyToken, idValidation, reviewController.approveReview);
-router.patch('/:reviewId/reject', authMiddleware.verifyToken, idValidation, reviewController.rejectReview);
 
 module.exports = router; 

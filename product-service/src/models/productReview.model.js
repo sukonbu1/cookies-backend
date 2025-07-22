@@ -23,7 +23,7 @@ class ProductReview {
       reviewData.likes_count || 0,
       reviewData.media_urls ? JSON.stringify(reviewData.media_urls) : null,
       reviewData.is_verified_purchase || false,
-      reviewData.status || 'pending'
+      reviewData.status || 'approved'
     ];
 
     const { rows } = await pool.query(query, values);
