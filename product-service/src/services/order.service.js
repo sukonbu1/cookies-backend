@@ -14,30 +14,59 @@ class OrderService {
       let tax_amount = 0;
       const processedItems = [];
       for (const item of items) {
-        if (!item.variant_id) {
-          throw new Error('Each order item must include a variant_id.');
+        // Check if product has variants
+        const product = await Product.findById(item.product_id);
+        if (!product) {
+          throw new Error(`Product with ID ${item.product_id} not found.`);
         }
-        const variant = await ProductVariant.findById(item.variant_id);
-        if (!variant) {
-          throw new Error(`Variant with ID ${item.variant_id} not found.`);
+        const variants = await ProductVariant.findByProductId(item.product_id);
+        if (variants.length > 0) {
+          // Product has variants, variant_id is required
+          if (!item.variant_id) {
+            throw new Error('Each order item must include a variant_id for products with variants.');
+          }
+          const variant = await ProductVariant.findById(item.variant_id);
+          if (!variant) {
+            throw new Error(`Variant with ID ${item.variant_id} not found.`);
+          }
+          if (variant.stock_quantity < item.quantity) {
+            throw new Error(`Insufficient stock for variant: ${variant.name || variant.sku || variant.variant_id}.`);
+          }
+          const unit_price = parseFloat(variant.price);
+          const total_price = unit_price * item.quantity;
+          const item_tax = total_price * 0.08;
+          subtotal += total_price;
+          tax_amount += item_tax;
+          processedItems.push({
+            ...item,
+            product_id: variant.product_id,
+            unit_price,
+            total_price,
+            shop_id: item.shop_id || null,
+            variant_id: item.variant_id
+          });
+          await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
+        } else {
+          // Product has no variants, use product's price/stock
+          if (product.stock_quantity < item.quantity) {
+            throw new Error(`Insufficient stock for product: ${product.name || product.product_id}.`);
+          }
+          const unit_price = parseFloat(product.price);
+          const total_price = unit_price * item.quantity;
+          const item_tax = total_price * 0.08;
+          subtotal += total_price;
+          tax_amount += item_tax;
+          processedItems.push({
+            ...item,
+            product_id: product.product_id,
+            unit_price,
+            total_price,
+            shop_id: item.shop_id || null,
+            variant_id: null
+          });
+          // Update product stock
+          await Product.updateStockQuantity(product.product_id, product.stock_quantity - item.quantity);
         }
-        if (variant.stock_quantity < item.quantity) {
-          throw new Error(`Insufficient stock for variant: ${variant.name || variant.sku || variant.variant_id}.`);
-        }
-        const unit_price = parseFloat(variant.price);
-        const total_price = unit_price * item.quantity;
-        const item_tax = total_price * 0.08;
-        subtotal += total_price;
-        tax_amount += item_tax;
-        processedItems.push({
-          ...item,
-          product_id: variant.product_id,
-          unit_price,
-          total_price,
-          shop_id: item.shop_id || null,
-          variant_id: item.variant_id
-        });
-        await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
       }
       // Use total_amount from request if provided, otherwise calculate
       let total_amount = restOfOrderData.total_amount;

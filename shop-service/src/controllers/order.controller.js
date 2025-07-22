@@ -21,9 +21,20 @@ class OrderController {
         if (!item.shop_id || notifiedShops.has(item.shop_id)) continue;
         notifiedShops.add(item.shop_id);
         // Send notification event to RabbitMQ (shop owner)
+        console.log('Sending order notification event:', {
+          type: 'order',
+          target_user_id: item.shop_id, 
+          actor_name,
+          order_id: order.order_id,
+          order_number: order.order_number,
+          total_amount: order.total_amount,
+          reference_type: 'order',
+          reference_id: order.order_id,
+          for_shop_owner: true
+        });
         await sendToQueue('notification-events', {
           type: 'order',
-          target_user_id: item.shop_id, // Assuming shop_id is the user_id of the shop owner
+          target_user_id: item.shop_id, 
           actor_name,
           order_id: order.order_id,
           order_number: order.order_number,
