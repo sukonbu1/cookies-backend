@@ -1,5 +1,6 @@
 const OrderService = require('../services/order.service');
-const { sendToQueue } = require('../utils/rabbitmq.util'); // Adjust path as needed
+const { sendToQueue } = require('../utils/rabbitmq.util'); 
+const HttpClient = require('../utils/http.util'); 
 
 class OrderController {
   async createOrder(req, res, next) {
@@ -17,6 +18,8 @@ class OrderController {
       const OrderItem = require('../models/orderItem.model');
       const orderItems = await OrderItem.findByOrderId(order.order_id);
       const notifiedShops = new Set();
+      // Fetch actor's username from user-service
+      const actorName = await HttpClient.getUsernameById(user_id);
       for (const item of orderItems) {
         if (!item.shop_id || notifiedShops.has(item.shop_id)) continue;
         notifiedShops.add(item.shop_id);
@@ -24,7 +27,7 @@ class OrderController {
         await sendToQueue('notification-events', {
           type: 'order',
           actor_id: user_id,
-          actor_name: req.user.displayName || req.user.name || req.user.username || req.user.email,
+          actor_name: actorName,
           target_user_id: item.shop_id,
           order_id: order.order_id,
           order_number: order.order_number,
@@ -35,7 +38,7 @@ class OrderController {
       await sendToQueue('notification-events', {
         type: 'order',
         actor_id: user_id,
-        actor_name: req.user.displayName || req.user.name || req.user.username || req.user.email,
+        actor_name: actorName,
         target_user_id: user_id,
         order_id: order.order_id,
         order_number: order.order_number,
