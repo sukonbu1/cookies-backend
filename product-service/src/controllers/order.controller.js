@@ -12,22 +12,34 @@ class OrderController {
       }
 
       const order = await OrderService.createOrder(orderData);
-      // After order is created and before sending the response:
-      console.log('Publishing order notification event:', {
-        type: 'order',
-        target_user_id: orderData.shop_id,
-        actor_name: user_id,
-        order_id: order.order_id,
-        order_number: order.order_number,
-        for_shop_owner: true // or false for buyer
-      });
+
+      // Get all unique shop_ids from order items
+      const OrderItem = require('../models/orderItem.model');
+      const orderItems = await OrderItem.findByOrderId(order.order_id);
+      const notifiedShops = new Set();
+      for (const item of orderItems) {
+        if (!item.shop_id || notifiedShops.has(item.shop_id)) continue;
+        notifiedShops.add(item.shop_id);
+        // Notify shop owner
+        await sendToQueue('notification-events', {
+          type: 'order',
+          actor_id: user_id,
+          actor_name: req.user.displayName || req.user.name || req.user.email || user_id,
+          target_user_id: item.shop_id,
+          order_id: order.order_id,
+          order_number: order.order_number,
+          for_shop_owner: true
+        });
+      }
+      // Notify buyer
       await sendToQueue('notification-events', {
         type: 'order',
-        target_user_id: orderData.shop_id,
-        actor_name: user_id,
+        actor_id: user_id,
+        actor_name: req.user.displayName || req.user.name || req.user.email || user_id,
+        target_user_id: user_id,
         order_id: order.order_id,
         order_number: order.order_number,
-        for_shop_owner: true // or false for buyer
+        for_shop_owner: false
       });
       res.status(201).json({ status: 'success', data: order });
     } catch (error) {
