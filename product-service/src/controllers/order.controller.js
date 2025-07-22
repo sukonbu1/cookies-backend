@@ -1,4 +1,5 @@
 const OrderService = require('../services/order.service');
+const { sendToQueue } = require('../utils/rabbitmq.util'); // Adjust path as needed
 
 class OrderController {
   async createOrder(req, res, next) {
@@ -11,6 +12,23 @@ class OrderController {
       }
 
       const order = await OrderService.createOrder(orderData);
+      // After order is created and before sending the response:
+      console.log('Publishing order notification event:', {
+        type: 'order',
+        target_user_id: shop_id,
+        actor_name: user_id,
+        order_id: order.order_id,
+        order_number: order.order_number,
+        for_shop_owner: true // or false for buyer
+      });
+      await sendToQueue('notification-events', {
+        type: 'order',
+        target_user_id: shop_id,
+        actor_name: user_id,
+        order_id: order.order_id,
+        order_number: order.order_number,
+        for_shop_owner: true // or false for buyer
+      });
       res.status(201).json({ status: 'success', data: order });
     } catch (error) {
       next(error);
