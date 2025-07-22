@@ -114,4 +114,4 @@ router.post('/shipping-address', authenticate, async (req, res) => {
   res.status(201).json({ status: 'success', data: address });
 });
 
-module.exports = router; 
+module.exports = router;
