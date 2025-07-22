@@ -60,6 +60,10 @@ async function startConsumer() {
         refType = 'user';
         refId = event.target_user_id;
       }
+      if (event.type === 'order') {
+        refType = 'order';
+        refId = event.order_id;
+      }
       notification.reference_type = refType;
       notification.reference_id = refId;
 
@@ -77,6 +81,17 @@ async function startConsumer() {
       } else {
         notification.actors = [event.actor_name];
         notification.count = 1;
+        if (event.type === 'order') {
+          // Shop owner notification
+          if (event.for_shop_owner) {
+            notification.title = 'New Order Received';
+            notification.content = `You have an order (${event.order_number || event.order_id}) from user ${event.actor_name}.`;
+          } else {
+            // Buyer notification
+            notification.title = 'Order Placed';
+            notification.content = `Your order (${event.order_number || event.order_id}) is being processed.`;
+          }
+        } else {
         notification.content = formatContent(event.type, notification.actors, refType);
         switch (event.type) {
           case 'like':
@@ -93,6 +108,7 @@ async function startConsumer() {
             break;
           default:
             notification.title = 'Notification';
+        }
         }
       }
 
