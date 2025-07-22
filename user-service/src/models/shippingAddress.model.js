@@ -1,4 +1,4 @@
-const pool = require('../../common/src/config/database');
+const pool = require('../../../common/src/config/database');
 
 class ShippingAddress {
   static async findByUserId(user_id) {
