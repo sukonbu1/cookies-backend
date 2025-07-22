@@ -24,7 +24,7 @@ class OrderController {
         await sendToQueue('notification-events', {
           type: 'order',
           actor_id: user_id,
-          actor_name: req.user.displayName || req.user.name || req.user.email || user_id,
+          actor_name: req.user.displayName || req.user.name || req.user.username || req.user.email,
           target_user_id: item.shop_id,
           order_id: order.order_id,
           order_number: order.order_number,
@@ -35,7 +35,7 @@ class OrderController {
       await sendToQueue('notification-events', {
         type: 'order',
         actor_id: user_id,
-        actor_name: req.user.displayName || req.user.name || req.user.email || user_id,
+        actor_name: req.user.displayName || req.user.name || req.user.username || req.user.email,
         target_user_id: user_id,
         order_id: order.order_id,
         order_number: order.order_number,
