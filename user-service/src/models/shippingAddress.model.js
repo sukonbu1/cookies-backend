@@ -21,6 +21,19 @@ class ShippingAddress {
     const { rows } = await pool.query(query, values);
     return rows[0];
   }
+
+  static async create(addressData) {
+    const columns = Object.keys(addressData).join(', ');
+    const placeholders = Object.keys(addressData).map((_, idx) => `$${idx + 1}`).join(', ');
+    const values = Object.values(addressData);
+    const query = `
+      INSERT INTO shippingaddresses (${columns})
+      VALUES (${placeholders})
+      RETURNING *
+    `;
+    const { rows } = await pool.query(query, values);
+    return rows[0];
+  }
 }
 
 module.exports = ShippingAddress; 

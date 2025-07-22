@@ -72,7 +72,6 @@ router.put('/:userId', authenticate, updateUserSchema, validateRequest, userCont
 router.delete('/:userId', authenticate, userController.deleteUser);
 router.get('/:userId/posts', authenticate, userController.getUserPosts);
 
-// Avatar upload route removed; avatars are now set via URL in updateUser
 
 // Follow/unfollow endpoints
 router.post('/:id/follow', authenticate, userController.followUser);
@@ -101,6 +100,18 @@ router.put('/shipping-address', authenticate, async (req, res) => {
   const updateData = { ...req.body };
   const address = await ShippingAddress.updateByUserId(user_id, updateData);
   res.json({ status: 'success', data: address });
+});
+
+// Create the authenticated user's shipping address if not exists
+router.post('/shipping-address', authenticate, async (req, res) => {
+  const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
+  const existing = await ShippingAddress.findByUserId(user_id);
+  if (existing) {
+    return res.status(400).json({ status: 'error', message: 'Shipping address already exists' });
+  }
+  const addressData = { ...req.body, user_id };
+  const address = await ShippingAddress.create(addressData);
+  res.status(201).json({ status: 'success', data: address });
 });
 
 module.exports = router; 
