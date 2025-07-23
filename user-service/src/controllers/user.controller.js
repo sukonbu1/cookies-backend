@@ -367,12 +367,13 @@ class UserController {
       const followerId = req.user.user_id;
       const followingId = req.params.id;
       await UserFollow.follow(followerId, followingId);
-      // Emit event for count update
+      console.log('About to emit user_follow event');
       await rabbitmq.sendToQueue('user-events', {
         type: 'user_follow',
         followerId,
         followingId
       });
+      console.log('Emitted user_follow event');
       // Emit notification event
       if (followerId !== followingId) {
         // Fetch the actor's username (User model is already imported)
