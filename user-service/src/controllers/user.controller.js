@@ -367,6 +367,9 @@ class UserController {
       const followerId = req.user.user_id;
       const followingId = req.params.id;
       await UserFollow.follow(followerId, followingId);
+      // Invalidate cache for both users
+      await redis.del(`user:${followerId}`);
+      await redis.del(`user:${followingId}`);
       console.log('About to emit user_follow event');
       await rabbitmq.sendToQueue('user-events', {
         type: 'user_follow',
@@ -398,6 +401,9 @@ class UserController {
       const followerId = req.user.user_id;
       const followingId = req.params.id;
       await UserFollow.unfollow(followerId, followingId);
+      // Invalidate cache for both users
+      await redis.del(`user:${followerId}`);
+      await redis.del(`user:${followingId}`);
       // Emit event for count update
       await rabbitmq.sendToQueue('user-events', {
         type: 'user_unfollow',
