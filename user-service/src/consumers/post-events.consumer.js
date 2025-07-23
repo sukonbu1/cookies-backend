@@ -5,12 +5,6 @@ const CacheUtil = require('../utils/cache.util');
 
 async function updateCounts(event) {
   switch (event.type) {
-    case 'post_like':
-      await pool.query('UPDATE posts SET likes_count = likes_count + 1 WHERE post_id = $1', [event.postId]);
-      break;
-    case 'post_unlike':
-      await pool.query('UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE post_id = $1', [event.postId]);
-      break;
     case 'post_create':
       await pool.query('UPDATE users SET posts_count = posts_count + 1 WHERE user_id = $1', [event.userId]);
       await CacheUtil.invalidateUserCache(event.userId);
@@ -28,7 +22,7 @@ async function startPostEventsConsumer() {
   await rabbitmq.consumeQueue('post-events', async (event) => {
     await updateCounts(event);
   });
-  console.log('Post events consumer started.');
+  console.log('User-service post-events consumer started.');
 }
 
 if (require.main === module) {
