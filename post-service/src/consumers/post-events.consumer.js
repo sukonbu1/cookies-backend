@@ -1,6 +1,6 @@
 require('dotenv').config();
 const rabbitmq = require('../utils/rabbitmq.util');
-const pool = require('../../common/src/config/database');
+const pool = require('../../../common/src/config/database');
 
 async function updateCounts(event) {
   switch (event.type) {
