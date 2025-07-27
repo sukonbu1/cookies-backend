@@ -47,10 +47,7 @@ const authenticate = async (req, res, next) => {
       email: userProfile.email
     });
 
-    if (userProfile.status !== 'active') {
-      console.log('User account not active:', userProfile.status);
-      return res.status(403).json({ message: 'Account is not active' });
-    }
+
 
     req.user = userProfile;
     next();
