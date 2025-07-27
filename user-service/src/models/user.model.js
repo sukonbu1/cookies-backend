@@ -18,10 +18,10 @@ class User {
       const query = `
         INSERT INTO users (
           user_id, username, email, phone_number, bio, 
-          date_of_birth, gender, country, city, is_verified, 
+          date_of_birth, gender, country, city, 
           is_chef, followers_count, following_count, posts_count, 
-          total_likes, status, avatar_url, cover_photo_url
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+          avatar_url, cover_photo_url
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *
       `;
 
@@ -35,13 +35,10 @@ class User {
         userData.gender || null,
         userData.country || null,
         userData.city || null,
-        false,
         userData.is_chef || false,
         0,
         0,
         0,
-        0,
-        'active',
         userData.avatar_url || null,
         userData.cover_photo_url || null
       ];
@@ -199,11 +196,10 @@ class User {
 
       const sql = `
         SELECT user_id, username, email, bio, avatar_url, cover_photo_url, 
-               is_verified, is_chef, followers_count, following_count, posts_count,
+               is_chef, followers_count, following_count, posts_count,
                country, city, created_at, updated_at
         FROM users 
         WHERE (username ILIKE $1 OR email ILIKE $1)
-        AND status = 'active'
         ORDER BY username ASC
         LIMIT $2 OFFSET $3
       `;
