@@ -20,8 +20,7 @@ class UserController {
           user_id: decodedToken.uid,
           email: decodedToken.email,
           username: User.generateUsernameFromEmail(decodedToken.email),
-          avatar_url: decodedToken.picture || null,
-          status: 'active'
+          avatar_url: decodedToken.picture || null
         });
       }
       TokenUtils.setAuthCookie(res, idToken);
@@ -45,8 +44,7 @@ class UserController {
           user_id: decodedToken.uid,
           email: decodedToken.email,
           username: User.generateUsernameFromEmail(decodedToken.email),
-          avatar_url: decodedToken.picture || null,
-          status: 'active'
+          avatar_url: decodedToken.picture || null
         });
       }
       TokenUtils.setAuthCookie(res, idToken);
@@ -88,8 +86,7 @@ class UserController {
           user_id: decodedToken.uid,
           email: decodedToken.email,
           username: username,
-          avatar_url: user.photoURL || decodedToken.picture,
-          status: 'active'
+          avatar_url: user.photoURL || decodedToken.picture
         });
       } else {
         const updates = {};
@@ -103,9 +100,7 @@ class UserController {
           existingUser = await User.update(decodedToken.uid, updates);
         }
       }
-      if (existingUser.status !== 'active') {
-        return res.status(403).json({ message: 'Account is not active' });
-      }
+
       const customToken = await TokenUtils.createCustomToken(decodedToken.uid, {
         email: existingUser.email,
         role: existingUser.role || 'user'
