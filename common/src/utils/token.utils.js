@@ -4,7 +4,7 @@ class TokenUtils {
   /**
    * Creates a Firebase custom token for a user
    * @param {string} uid - User ID
-   * @param {Object} additionalClaims - Optional additional claims
+   * @param {Object} additionalClaims - Additional claims
    * @returns {Promise<string>} - Firebase custom token
    */
   static async createCustomToken(uid, additionalClaims = {}) {
@@ -22,25 +22,21 @@ class TokenUtils {
   }
 
   /**
-   * Verifies a Firebase custom token by decoding it
-   * Note: Custom tokens are JWTs, so we can decode them directly
+   * Validates a custom token and verifies the user exists
    * @param {string} token - Firebase custom token
    * @returns {Promise<Object>} - Decoded token payload
    */
-  static async verifyCustomToken(token) {
+  static async validateCustomToken(token) {
     try {
       if (!token) {
         throw new Error('No token provided');
       }
 
-      // For custom tokens, we can decode the JWT directly
-      // Custom tokens are signed with your service account key
+      // Decode the custom token (JWT format)
       const jwt = require('jsonwebtoken');
-      
-      // Decode without verification first to get the payload
       const decoded = jwt.decode(token);
       
-      if (!decoded) {
+      if (!decoded || !decoded.uid) {
         throw new Error('Invalid token format');
       }
 
@@ -49,65 +45,21 @@ class TokenUtils {
         throw new Error('Token has expired');
       }
 
-      return decoded;
-    } catch (error) {
-      console.error('Token verification error:', error);
-      throw new Error(`Token verification failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Alternative: Verify custom token by attempting to use it
-   * This method actually validates the token with Firebase
-   * @param {string} customToken - Firebase custom token
-   * @returns {Promise<Object>} - Token validation result
-   */
-  static async validateCustomToken(token) {
-    try {
-      console.log('Validating custom token');
-      
-      if (!token) {
-        console.log('No token provided');
-        throw new Error('No token provided');
-      }
-
-      // First try to verify as a Firebase ID token
+      // Verify the user exists in Firebase Auth
       try {
-        console.log('Attempting to verify as Firebase ID token');
-        const decodedIdToken = await admin.auth().verifyIdToken(token);
-        console.log('Successfully verified as Firebase ID token:', {
-          uid: decodedIdToken.uid,
-          email: decodedIdToken.email
+        const userRecord = await admin.auth().getUser(decoded.uid);
+        console.log('User verified in Firebase:', {
+          uid: userRecord.uid,
+          email: userRecord.email
         });
-        return decodedIdToken;
-      } catch (firebaseError) {
-        console.log('Failed to verify as Firebase ID token, trying as custom token');
-        // If Firebase ID token verification fails, try as a custom token
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.decode(token);
-        
-        if (!decoded || !decoded.uid) {
-          console.log('Invalid token format');
-          throw new Error('Invalid token format');
-        }
-
-        // Verify the user exists in Firebase Auth
-        try {
-          const userRecord = await admin.auth().getUser(decoded.uid);
-          console.log('User verified in Firebase:', {
-            uid: userRecord.uid,
-            email: userRecord.email
-          });
-          return decoded;
-        } catch (userError) {
-          console.error('User verification failed:', userError);
-          throw new Error('Invalid user');
-        }
+        return decoded;
+      } catch (userError) {
+        console.error('User verification failed:', userError);
+        throw new Error('Invalid user');
       }
     } catch (error) {
       console.error('Token validation error:', {
-        message: error.message,
-        stack: error.stack
+        message: error.message
       });
       throw error;
     }
@@ -116,7 +68,7 @@ class TokenUtils {
   /**
    * Sets the authentication token in the response cookie
    * @param {Object} res - Express response object
-   * @param {string} token - Firebase token
+   * @param {string} token - Firebase custom token
    */
   static setAuthCookie(res, token) {
     console.log('Setting auth cookie');

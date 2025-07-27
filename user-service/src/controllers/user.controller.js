@@ -9,51 +9,7 @@ const rabbitmq = require('../utils/rabbitmq.util');
 const CACHE_TTL = 300; // 5 minutes
 
 class UserController {
-  async register(req, res, next) {
-    try {
-      const { idToken } = req.body;
-      if (!idToken) return res.status(400).json({ message: 'ID token required' });
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      let user = await User.findById(decodedToken.uid);
-      if (!user) {
-        user = await User.create({
-          user_id: decodedToken.uid,
-          email: decodedToken.email,
-          username: User.generateUsernameFromEmail(decodedToken.email),
-          avatar_url: decodedToken.picture || null
-        });
-      }
-      TokenUtils.setAuthCookie(res, idToken);
-      const { password_hash, ...userWithoutPassword } = user;
-      res.status(201).json(userWithoutPassword);
-    } catch (error) {
-      next(error);
-    }
-  }
 
-  async login(req, res, next) {
-    try {
-      const { idToken } = req.body;
-      if (!idToken) return res.status(400).json({ message: 'ID token required' });
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      console.log('[LOGIN] Decoded Firebase UID:', decodedToken.uid);
-      let user = await User.findById(decodedToken.uid);
-      console.log('[LOGIN] User from DB:', user);
-      if (!user) {
-        user = await User.create({
-          user_id: decodedToken.uid,
-          email: decodedToken.email,
-          username: User.generateUsernameFromEmail(decodedToken.email),
-          avatar_url: decodedToken.picture || null
-        });
-      }
-      TokenUtils.setAuthCookie(res, idToken);
-      const { password_hash, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      next(error);
-    }
-  }
 
   async logout(req, res) {
     try {
@@ -477,8 +433,6 @@ class UserController {
 const userControllerInstance = new UserController();
 
 module.exports = {
-  register: userControllerInstance.register.bind(userControllerInstance),
-  login: userControllerInstance.login.bind(userControllerInstance),
   logout: userControllerInstance.logout.bind(userControllerInstance),
   googleAuth: userControllerInstance.googleAuth.bind(userControllerInstance),
   getUser: userControllerInstance.getUser.bind(userControllerInstance),
