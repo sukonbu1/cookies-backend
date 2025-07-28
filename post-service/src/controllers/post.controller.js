@@ -72,6 +72,15 @@ class PostController {
         userId: userId,
         postId: post.post_id
       });
+      
+      // Emit event to notify followers about new post
+      await rabbitmq.sendToQueue('follower-notification-events', {
+        type: 'new_post',
+        author_id: userId,
+        post_id: post.post_id,
+        post_title: title || 'New Post'
+      });
+      
       // Attach hashtags to response
       post.hashtags = hashtags;
       res.status(201).json(post);

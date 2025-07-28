@@ -27,6 +27,11 @@ function formatContent(type, actors, reference_type) {
     if (actors.length === 2) return `${actors[0]} and ${actors[1]} followed you.`;
     if (actors.length > 2) return `${actors[0]}, ${actors[1]}, and ${actors.length - 2} others followed you.`;
   }
+  if (type === 'new_post') {
+    if (actors.length === 1) return `${actors[0]} posted something new.`;
+    if (actors.length === 2) return `${actors[0]} and ${actors[1]} posted new content.`;
+    if (actors.length > 2) return `${actors[0]}, ${actors[1]}, and ${actors.length - 2} others posted new content.`;
+  }
   return '';
 }
 
@@ -63,6 +68,10 @@ async function startConsumer() {
       if (event.type === 'order') {
         refType = 'order';
         refId = event.order_id;
+      }
+      if (event.type === 'new_post') {
+        refType = 'author';
+        refId = event.actor_id; // Group by author, not individual post
       }
       notification.reference_type = refType;
       notification.reference_id = refId;
@@ -105,6 +114,9 @@ async function startConsumer() {
             break;
           case 'follow':
             notification.title = 'New follower';
+            break;
+          case 'new_post':
+            notification.title = 'New posts from people you follow';
             break;
           default:
             notification.title = 'Notification';

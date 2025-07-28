@@ -337,7 +337,8 @@ class UserController {
           type: 'follow',
           actor_id: followerId,
           actor_name: actorName,
-          target_user_id: followingId
+          target_user_id: followingId,
+          reference_id: followerId
         });
       }
       res.json({ message: 'Followed successfully' });

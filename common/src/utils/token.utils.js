@@ -1,12 +1,12 @@
 const admin = require('../config/firebase');
 
 class TokenUtils {
-  /**
-   * Creates a Firebase custom token for a user
-   * @param {string} uid - User ID
-   * @param {Object} additionalClaims - Additional claims
-   * @returns {Promise<string>} - Firebase custom token
-   */
+
+  // Creates a Firebase custom token for a user
+  // @param {string} uid - User ID
+  // @param {Object} additionalClaims - Additional claims
+  // @returns {Promise<string>} - Firebase custom token
+   
   static async createCustomToken(uid, additionalClaims = {}) {
     try {
       console.log('Creating custom token for:', {
@@ -21,11 +21,10 @@ class TokenUtils {
     }
   }
 
-  /**
-   * Validates a custom token and verifies the user exists
-   * @param {string} token - Firebase custom token
-   * @returns {Promise<Object>} - Decoded token payload
-   */
+  // Validates a custom token and verifies the user exists
+  // @param {string} token - Firebase custom token
+  // @returns {Promise<Object>} - Decoded token payload
+
   static async validateCustomToken(token) {
     try {
       if (!token) {
@@ -65,11 +64,10 @@ class TokenUtils {
     }
   }
 
-  /**
-   * Sets the authentication token in the response cookie
-   * @param {Object} res - Express response object
-   * @param {string} token - Firebase custom token
-   */
+  // Sets the authentication token in the response cookie
+  // @param {Object} res - Express response object
+  // @param {string} token - Firebase custom token
+  
   static setAuthCookie(res, token) {
     console.log('Setting auth cookie');
     res.cookie('token', token, {
@@ -79,10 +77,9 @@ class TokenUtils {
     });
   }
 
-  /**
-   * Clears the authentication cookie
-   * @param {Object} res - Express response object
-   */
+  // Clears the authentication cookie
+  // @param {Object} res - Express response object
+  
   static clearAuthCookie(res) {
     console.log('Clearing auth cookie');
     res.clearCookie('token');
