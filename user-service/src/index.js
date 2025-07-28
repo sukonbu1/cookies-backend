@@ -38,6 +38,7 @@ const allowedOrigins = [
   'http://103.253.145.7',
   'https://103.253.145.7',
   'http://103.253.145.7:5173',
+  'http://103.253.145.7:8080',
   'https://cookiesnext.duckdns.org',
   'http://localhost:8080',
 ];
