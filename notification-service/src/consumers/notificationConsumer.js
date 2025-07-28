@@ -104,15 +104,26 @@ async function startConsumer() {
         const existing = await findUnreadAggregated(
           event.target_user_id, event.type, refType, refId
         );
+        console.log(`[NOTIFICATION CONSUMER] Checking for existing notification: userId=${event.target_user_id}, type=${event.type}, refType=${refType}, refId=${refId}`);
+        console.log(`[NOTIFICATION CONSUMER] Existing notification found:`, existing);
+        
         if (existing) {
+          console.log(`[NOTIFICATION CONSUMER] Updating existing notification:`, existing.notification_id);
           let actors = Array.isArray(existing.actors) ? existing.actors : JSON.parse(existing.actors || '[]');
           if (!actors.includes(event.actor_name)) actors.push(event.actor_name);
           const content = formatContent(event.type, actors, refType);
           const updated = await updateAggregatedNotification(existing.notification_id, actors, actors.length, content);
+          console.log(`[NOTIFICATION CONSUMER] Updated notification:`, updated);
           sendNotification(event.target_user_id, updated);
           channel.ack(msg);
           return;
         } else {
+          console.log(`[NOTIFICATION CONSUMER] Creating new notification for:`, {
+            user_id: event.target_user_id,
+            type: event.type,
+            refType,
+            refId
+          });
           notification.actors = [event.actor_name];
           notification.count = 1;
           if (event.type === 'order') {
@@ -149,8 +160,11 @@ async function startConsumer() {
           }
         }
 
+        console.log(`[NOTIFICATION CONSUMER] Final notification object:`, notification);
         const saved = await createNotification(notification);
+        console.log(`[NOTIFICATION CONSUMER] Notification saved successfully:`, saved);
         sendNotification(notification.user_id, saved);
+        console.log(`[NOTIFICATION CONSUMER] Notification sent to user:`, notification.user_id);
         channel.ack(msg);
       } catch (error) {
         console.error('[NOTIFICATION CONSUMER] Error processing notification:', error);
