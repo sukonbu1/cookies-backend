@@ -123,11 +123,21 @@ class UserController {
       // Remove sensitive data
       const { password_hash, ...userWithoutPassword } = user;
 
-      // Cache the result
+      // Default to not following
+      let isFollowing = false;
+      // Only check if the requester is authenticated and not viewing their own profile
+      if (req.user && req.user.user_id !== userId) {
+        isFollowing = await UserFollow.isFollowing(req.user.user_id, userId);
+      }
+
+      // Add isFollowing to the response
+      const response = { ...userWithoutPassword, isFollowing };
+
+      // Cache the result (cache only the user data, not isFollowing, since isFollowing is user-specific)
       await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
       console.log('User cached successfully');
       
-      res.json(userWithoutPassword);
+      res.json(response);
     } catch (error) {
       console.error('Error in getUser:', {
         message: error.message,
