@@ -98,32 +98,39 @@ class UserController {
       console.log('[DEBUG] Looking up user in DB:', userId);
 
       // Try to get from cache first
+      let userWithoutPassword;
       const cachedUser = await redis.get(`user:${userId}`);
+      
       if (cachedUser) {
         console.log('User found in cache');
-        return res.json(JSON.parse(cachedUser));
+        userWithoutPassword = JSON.parse(cachedUser);
+      } else {
+        console.log('User not in cache, querying database');
+        
+        // Get from database
+        const user = await User.findById(userId);
+        // Debug log after DB query
+        console.log('[DEBUG] DB result for user:', user);
+        if (!user) {
+          console.log('User not found in database');
+          return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log('User found in database:', {
+          userId: user.user_id,
+          email: user.email
+        });
+
+        // Remove sensitive data
+        const { password_hash, ...userDataWithoutPassword } = user;
+        userWithoutPassword = userDataWithoutPassword;
+
+        // Cache the result (cache only the user data, not isFollowing, since isFollowing is user-specific)
+        await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
+        console.log('User cached successfully');
       }
 
-      console.log('User not in cache, querying database');
-
-      // Get from database
-      const user = await User.findById(userId);
-      // Debug log after DB query
-      console.log('[DEBUG] DB result for user:', user);
-      if (!user) {
-        console.log('User not found in database');
-        return res.status(404).json({ message: 'User not found' });
-      }
-
-      console.log('User found in database:', {
-        userId: user.user_id,
-        email: user.email
-      });
-
-      // Remove sensitive data
-      const { password_hash, ...userWithoutPassword } = user;
-
-      // Default to not following
+      // Always calculate isFollowing regardless of cache hit/miss
       let isFollowing = false;
       // Skip following check for internal service requests
       if (req.user && !req.user.isInternalService && req.user.user_id !== userId) {
@@ -132,10 +139,6 @@ class UserController {
 
       // Add isFollowing to the response
       const response = { ...userWithoutPassword, isFollowing };
-
-      // Cache the result (cache only the user data, not isFollowing, since isFollowing is user-specific)
-      await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
-      console.log('User cached successfully');
       
       res.json(response);
     } catch (error) {
