@@ -125,8 +125,8 @@ class UserController {
 
       // Default to not following
       let isFollowing = false;
-      // Only check if the requester is authenticated and not viewing their own profile
-      if (req.user && req.user.user_id !== userId) {
+      // Skip following check for internal service requests
+      if (req.user && !req.user.isInternalService && req.user.user_id !== userId) {
         isFollowing = await UserFollow.isFollowing(req.user.user_id, userId);
       }
 

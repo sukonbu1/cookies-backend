@@ -375,16 +375,31 @@ class PostController {
       
       // Fetch the post to get the owner
       const post = await Post.findById(id);
+      console.log('[COMMENT NOTIFICATION] Post found:', post ? { user_id: post.user_id, post_id: id } : 'No post found');
+      
       // Fetch the actor's username
+      console.log('[COMMENT NOTIFICATION] Fetching username for userId:', userId);
       const actorName = await HttpClient.getUsernameById(userId);
+      console.log('[COMMENT NOTIFICATION] Actor name fetched:', actorName);
+      
       if (post && post.user_id && post.user_id !== userId) {
-        await rabbitmq.sendToQueue('notification-events', {
+        const notificationEvent = {
           type: 'comment',
           actor_id: userId,
           actor_name: actorName,
           target_user_id: post.user_id,
           post_id: id,
           comment_id: comment.comment_id
+        };
+        console.log('[COMMENT NOTIFICATION] Sending notification event:', notificationEvent);
+        await rabbitmq.sendToQueue('notification-events', notificationEvent);
+        console.log('[COMMENT NOTIFICATION] Notification event sent successfully');
+      } else {
+        console.log('[COMMENT NOTIFICATION] Skipping notification - conditions not met:', {
+          hasPost: !!post,
+          hasPostUserId: post?.user_id,
+          isDifferentUser: post?.user_id !== userId,
+          currentUserId: userId
         });
       }
       res.status(201).json({ status: 'success', data: comment });
