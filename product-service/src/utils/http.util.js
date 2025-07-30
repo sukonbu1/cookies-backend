@@ -16,10 +16,20 @@ class HttpClient {
   static async getUsernameById(userId) {
     try {
       const user = await this.getUserById(userId);
-      return user ? user.username : userId;
+      if (user && user.username) {
+        return user.username;
+      }
+      // If user exists but has no username, try to use email prefix or generate one
+      if (user && user.email) {
+        const emailPrefix = user.email.split('@')[0];
+        return emailPrefix;
+      }
+      // Final fallback - return a more descriptive string instead of just userId
+      console.warn(`User ${userId} has no username or email, using fallback`);
+      return `User ${userId}`;
     } catch (error) {
       console.error(`Error fetching username for ${userId}:`, error.message);
-      return userId;
+      return `User ${userId}`;
     }
   }
 }
