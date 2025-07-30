@@ -27,7 +27,7 @@ router.post('/shipping-address', authenticate, shippingAddressController.createS
 
 // User routes
 router.get('/me', authenticate, userController.getMe);
-router.get('/:userId', authenticate, userController.getUserById);
+router.get('/:userId', authenticate, userController.getUser);
 router.put('/:userId', authenticate, updateUserSchema, validateRequest, userController.updateUser);
 router.delete('/:userId', authenticate, userController.deleteUser);
 router.get('/:userId/posts', authenticate, userController.getUserPosts);

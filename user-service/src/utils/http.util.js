@@ -1,11 +1,18 @@
 const axios = require('axios');
 
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://103.253.145.7:8080';
+const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || 'internal-service-token';
 
 class HttpClient {
   static async getUserById(userId) {
     try {
-      const response = await axios.get(`${USER_SERVICE_URL}/api/users/${userId}`);
+      // Use gateway URL and include internal service token for authentication
+      const response = await axios.get(`${GATEWAY_URL}/api/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${INTERNAL_SERVICE_TOKEN}`,
+          'X-Internal-Service': 'user-service'
+        }
+      });
       return response.data;
     } catch (error) {
       console.error(`Error fetching user ${userId}:`, error.message);
@@ -24,12 +31,12 @@ class HttpClient {
         const emailPrefix = user.email.split('@')[0];
         return emailPrefix;
       }
-      // Final fallback - return a more descriptive string instead of just userId
+      // Final fallback - return userId
       console.warn(`User ${userId} has no username or email, using fallback`);
-      return `User ${userId}`;
+      return userId;
     } catch (error) {
       console.error(`Error fetching username for ${userId}:`, error.message);
-      return `User ${userId}`;
+      return userId;
     }
   }
 }
