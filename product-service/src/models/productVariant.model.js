@@ -16,7 +16,7 @@ class ProductVariant {
     const values = [
       uuidv4(),
       variantData.product_id,
-      variantData.sku,
+      variantData.sku || null,
       variantData.price,
       variantData.sale_price || null,
       variantData.stock_quantity || 0,
