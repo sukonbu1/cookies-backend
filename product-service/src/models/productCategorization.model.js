@@ -13,6 +13,29 @@ class ProductCategorization {
     const { rows } = await pool.query(query, values);
     return rows[0];
   }
+
+  static async findByProductId(product_id) {
+    const query = 'SELECT * FROM "productcategorization" WHERE product_id = $1';
+    const { rows } = await pool.query(query, [product_id]);
+    return rows[0] || null;
+  }
+
+  static async updateByProductId(product_id, category_id) {
+    const query = `
+      UPDATE "productcategorization" 
+      SET category_id = $2 
+      WHERE product_id = $1
+      RETURNING *
+    `;
+    const { rows } = await pool.query(query, [product_id, category_id]);
+    return rows[0] || null;
+  }
+
+  static async deleteByProductId(product_id) {
+    const query = 'DELETE FROM "productcategorization" WHERE product_id = $1';
+    const { rowCount } = await pool.query(query, [product_id]);
+    return rowCount > 0;
+  }
 }
 
 module.exports = ProductCategorization; 

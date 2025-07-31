@@ -121,8 +121,10 @@ class ProductController {
       };
       const images = req.body.images || [];
       const variants = req.body.variants || [];
+      const category_id = req.body.category_id; // extract category_id
       delete updateData.images;
       delete updateData.variants;
+      delete updateData.category_id; // remove from updateData
       const updatedProduct = await Product.update(req.params.id, updateData);
       // Optionally update images (add logic as needed)
       if (Array.isArray(images) && images.length > 0) {
@@ -145,6 +147,27 @@ class ProductController {
             product_id: req.params.id,
             ...variant
           });
+        }
+      }
+      // Handle category update
+      if (category_id !== undefined) {
+        const existingCategorization = await ProductCategorization.findByProductId(req.params.id);
+        if (category_id) {
+          // Update or create categorization
+          if (existingCategorization) {
+            await ProductCategorization.updateByProductId(req.params.id, category_id);
+          } else {
+            await ProductCategorization.create({
+              product_id: req.params.id,
+              category_id,
+              is_primary: true
+            });
+          }
+        } else {
+          // Remove categorization if category_id is null/empty
+          if (existingCategorization) {
+            await ProductCategorization.deleteByProductId(req.params.id);
+          }
         }
       }
       res.json({
