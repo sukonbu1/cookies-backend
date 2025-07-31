@@ -12,7 +12,10 @@ const productValidation = [
   body('price').isNumeric().withMessage('Price must be a number'),
   body('shop_id').notEmpty().withMessage('Shop ID is required'),
   body('stock_quantity').optional().isInt({ min: 0 }).withMessage('Stock quantity must be a positive integer'),
-  body('sku').optional().isString(),
+  body('sku').optional({ checkFalsy: true }).custom(value => {
+    if (value === null || value === undefined || value === '') return true;
+    return typeof value === 'string';
+  }),
   body('status').optional().isIn(['active', 'inactive', 'out_of_stock', 'discontinued']).withMessage('Invalid status value'),
   body('condition_status').optional().isIn(['new', 'used', 'refurbished']).withMessage('Invalid condition value'),
   validateRequest
