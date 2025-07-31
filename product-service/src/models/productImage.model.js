@@ -3,6 +3,11 @@ const { v4: uuidv4 } = require('uuid');
 
 class ProductImage {
   static async create(imageData) {
+    // Validate required fields
+    if (!imageData.image_url || typeof imageData.image_url !== 'string' || imageData.image_url.trim() === '') {
+      throw new Error('image_url is required and must be a non-empty string');
+    }
+    
     const query = `
       INSERT INTO "productimages" (
         image_id, product_id, image_url, thumbnail_url, alt_text,

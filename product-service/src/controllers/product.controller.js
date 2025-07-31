@@ -69,11 +69,19 @@ class ProductController {
       const product = await Product.create(productData);
       // Save images if provided
       if (Array.isArray(images)) {
-        for (const img of images) {
+        // Filter out images without valid URLs
+        const validImages = images.filter(img => 
+          img && (img.url || img.image_url) && 
+          typeof (img.url || img.image_url) === 'string' && 
+          (img.url || img.image_url).trim() !== ''
+        );
+        
+        for (const img of validImages) {
+          const imageUrl = img.url || img.image_url;
           await ProductImage.create({
             product_id: product.product_id,
-            image_url: img.url,
-            thumbnail_url: img.thumbnail_url || img.url,
+            image_url: imageUrl,
+            thumbnail_url: img.thumbnail_url || imageUrl,
             alt_text: img.alt_text || null,
             position: img.position || 0,
             is_primary: img.is_primary || false
@@ -128,25 +136,80 @@ class ProductController {
       const updatedProduct = await Product.update(req.params.id, updateData);
       // Optionally update images (add logic as needed)
       if (Array.isArray(images) && images.length > 0) {
-        await ProductImage.deleteByProductId(req.params.id);
-        for (const img of images) {
-          await ProductImage.create({
-            product_id: req.params.id,
-            image_url: img.url,
-            thumbnail_url: img.thumbnail_url || img.url,
-            alt_text: img.alt_text || null,
-            position: img.position || 0,
-            is_primary: img.is_primary || false
-          });
+        // Filter out images without valid URLs
+        const validImages = images.filter(img => 
+          img && (img.url || img.image_url) && 
+          typeof (img.url || img.image_url) === 'string' && 
+          (img.url || img.image_url).trim() !== ''
+        );
+        
+        if (validImages.length > 0) {
+          await ProductImage.deleteByProductId(req.params.id);
+          for (const img of validImages) {
+            const imageUrl = img.url || img.image_url;
+            await ProductImage.create({
+              product_id: req.params.id,
+              image_url: imageUrl,
+              thumbnail_url: img.thumbnail_url || imageUrl,
+              alt_text: img.alt_text || null,
+              position: img.position || 0,
+              is_primary: img.is_primary || false
+            });
+          }
         }
       }
       if (Array.isArray(variants)) {
-        await ProductVariant.deleteByProductId(req.params.id);
+        // Smart variant update: update existing, create new, handle deletions carefully
+        const existingVariants = await ProductVariant.findByProductId(req.params.id);
+        const existingVariantIds = existingVariants.map(v => v.variant_id);
+        
+        // Track which variants are being updated/kept
+        const variantsToKeep = [];
+        
         for (const variant of variants) {
-          await ProductVariant.create({
-            product_id: req.params.id,
-            ...variant
-          });
+          if (variant.variant_id && existingVariantIds.includes(variant.variant_id)) {
+            // Update existing variant
+            await ProductVariant.update(variant.variant_id, {
+              sku: variant.sku && variant.sku.trim() !== '' ? variant.sku : null,
+              price: variant.price,
+              sale_price: variant.sale_price || null,
+              stock_quantity: variant.stock_quantity || 0,
+              color: variant.color && variant.color.trim() !== '' ? variant.color : null,
+              size: variant.size && variant.size.trim() !== '' ? variant.size : null,
+              material: variant.material && variant.material.trim() !== '' ? variant.material : null,
+              weight: variant.weight || null,
+              weight_unit: variant.weight_unit || null,
+              dimensions: variant.dimensions || null
+            });
+            variantsToKeep.push(variant.variant_id);
+          } else {
+            // Create new variant
+            const newVariant = await ProductVariant.create({
+              product_id: req.params.id,
+              sku: variant.sku && variant.sku.trim() !== '' ? variant.sku : null,
+              price: variant.price,
+              sale_price: variant.sale_price || null,
+              stock_quantity: variant.stock_quantity || 0,
+              color: variant.color && variant.color.trim() !== '' ? variant.color : null,
+              size: variant.size && variant.size.trim() !== '' ? variant.size : null,
+              material: variant.material && variant.material.trim() !== '' ? variant.material : null,
+              weight: variant.weight || null,
+              weight_unit: variant.weight_unit || null,
+              dimensions: variant.dimensions || null
+            });
+            variantsToKeep.push(newVariant.variant_id);
+          }
+        }
+        
+        // Only attempt to delete variants that are not being kept and not referenced by orders
+        const variantsToDelete = existingVariants.filter(v => !variantsToKeep.includes(v.variant_id));
+        for (const variant of variantsToDelete) {
+          try {
+            await ProductVariant.delete(variant.variant_id);
+          } catch (error) {
+            // If deletion fails due to foreign key constraint, log it but don't fail the whole update
+            console.warn(`Could not delete variant ${variant.variant_id}: still referenced by orders`);
+          }
         }
       }
       // Handle category update
