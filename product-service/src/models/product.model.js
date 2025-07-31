@@ -171,7 +171,12 @@ class Product {
   }
 
   static async update(productId, updateData) {
-    const setClause = Object.keys(updateData)
+    // Remove updated_at and created_at from updateData to avoid conflicts
+    const cleanUpdateData = { ...updateData };
+    delete cleanUpdateData.updated_at;
+    delete cleanUpdateData.created_at;
+    
+    const setClause = Object.keys(cleanUpdateData)
       .map((key, index) => `${key} = $${index + 2}`)
       .join(', ');
     
@@ -182,7 +187,7 @@ class Product {
       RETURNING *
     `;
 
-    const values = [productId, ...Object.values(updateData)];
+    const values = [productId, ...Object.values(cleanUpdateData)];
     const { rows } = await pool.query(query, values);
     return rows[0] || null;
   }
