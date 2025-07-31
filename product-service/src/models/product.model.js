@@ -23,7 +23,7 @@ class Product {
       productData.sale_price || null,
       productData.currency || 'USD',
       productData.stock_quantity || 0,
-      productData.sku || null,
+      productData.sku && productData.sku.trim() !== '' ? productData.sku : null,
       productData.weight || null,
       productData.weight_unit || null,
       productData.dimensions || null,
