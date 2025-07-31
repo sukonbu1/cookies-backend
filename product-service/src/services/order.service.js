@@ -45,7 +45,10 @@ class OrderService {
             shop_id: item.shop_id || null,
             variant_id: item.variant_id
           });
+          // Update variant stock
           await ProductVariant.updateStock(item.variant_id, variant.stock_quantity - item.quantity);
+          // Also update main product stock for consistency
+          await Product.updateStockQuantity(product.product_id, product.stock_quantity - item.quantity);
         } else {
           // Product has no variants, use product's price/stock
           if (product.stock_quantity < item.quantity) {
