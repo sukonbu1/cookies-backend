@@ -3,24 +3,34 @@ const { sendToQueue } = require('../utils/rabbitmq.util');
 const { OrderItem } = require('../models/order.model');
 
 class OrderController {
+  /**
+   * Creates an order and manages multi-shop notifications
+   * Handles order creation, extracts shop information from order items,
+   * and sends targeted notifications to both shop owners and buyers via RabbitMQ
+   */
   async createOrder(req, res, next) {
     try {
-      // Get user_id from the authenticated user
+      // Extract user identification from authenticated user token
       const user_id = req.user.uid || req.user.userId || req.user.id || req.user.sub;
       const actor_name = req.user.displayName || req.user.name || req.user.email || user_id;
-      // Generate a unique order_number
+      
+      // Generate unique order identifier with timestamp and random component
       const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-      const orderData = { ...req.body, user_id, order_number: orderNumber }; // Inject user_id and order_number
+      const orderData = { ...req.body, user_id, order_number: orderNumber };
+      
+      // Create order through service layer with transaction management
       const order = await OrderService.createOrder(orderData);
 
-      // Fetch order items to get shop_id(s)
+      // Extract shop information from order items for targeted notifications
       const orderItems = await OrderItem.findByOrderId(order.order_id);
-      // Notify each shop owner (shop_id) about the new order
+      
+      // Send notifications to each unique shop owner (avoid duplicates)
       const notifiedShops = new Set();
       for (const item of orderItems) {
         if (!item.shop_id || notifiedShops.has(item.shop_id)) continue;
         notifiedShops.add(item.shop_id);
-        // Send notification event to RabbitMQ (shop owner)
+        
+        // Publish notification event for shop owner via message queue
         console.log('Publishing order notification event:', {
           type: 'order',
           target_user_id: item.shop_id, 

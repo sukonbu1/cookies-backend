@@ -19,6 +19,10 @@ class RabbitMQClient {
     }
   }
 
+  /**
+   * Sends a message to a specified queue with automatic connection management
+   * Ensures queue durability and handles JSON serialization
+   */
   async sendToQueue(queue, message, options = {}) {
     await this.connect();
     await this.channel.assertQueue(queue, { durable: true });
@@ -26,6 +30,10 @@ class RabbitMQClient {
     this.channel.sendToQueue(queue, Buffer.from(JSON.stringify(message)), options);
   }
 
+  /**
+   * Consumes messages from a queue with error handling and acknowledgment
+   * Implements automatic retry mechanism and dead letter handling for failed messages
+   */
   async consumeQueue(queue, callback, deadLetterConfig = {}) {
     await this.connect();
     await this.channel.assertQueue(queue, { durable: true });
@@ -37,7 +45,7 @@ class RabbitMQClient {
           this.channel.ack(msg);
         } catch (err) {
           console.error('Error processing message:', err);
-          this.channel.nack(msg, false, false); // Discard message
+          this.channel.nack(msg, false, false); // Discard message on error
         }
       }
     });

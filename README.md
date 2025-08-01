@@ -18,7 +18,6 @@ A microservices-based backend for a food social network platform.
 - Node.js/JavaScript
 - PostgreSQL 
 - Redis (for caching)
-- Kong (API Gateway)
 
 ## Prerequisites
 

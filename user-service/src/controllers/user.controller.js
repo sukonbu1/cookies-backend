@@ -20,17 +20,27 @@ class UserController {
     }
   }
 
+  /**
+   * Handles Google OAuth authentication flow
+   * Verifies Firebase ID token, creates new user if needed, or updates existing user
+   * Generates custom token for session management and sets secure cookie
+   */
   async googleAuth(req, res, next) {
     try {
       const { idToken, user } = req.body;
       if (!idToken) {
         return res.status(400).json({ message: 'ID token is required' });
       }
+      
+      // Verify the Firebase ID token and extract user claims
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       console.log('[GOOGLE AUTH] Decoded Firebase UID:', decodedToken.uid);
+      
       let existingUser = await User.findById(decodedToken.uid);
       console.log('[GOOGLE AUTH] User from DB:', existingUser);
+      
       if (!existingUser) {
+        // Create new user account if doesn't exist
         let username = user.username;
         if (!username && decodedToken.email) {
           username = User.generateUsernameFromEmail(decodedToken.email);
@@ -45,6 +55,7 @@ class UserController {
           avatar_url: user.photoURL || decodedToken.picture
         });
       } else {
+        // Update existing user with any new information from Google
         const updates = {};
         if (user.username && user.username !== existingUser.username) {
           updates.username = user.username;
@@ -57,11 +68,14 @@ class UserController {
         }
       }
 
+      // Generate custom token for internal session management
       const customToken = await TokenUtils.createCustomToken(decodedToken.uid, {
         email: existingUser.email,
         role: existingUser.role || 'user'
       });
       TokenUtils.setAuthCookie(res, customToken);
+      
+      // Return user data without sensitive information
       const { password_hash, ...userWithoutPassword } = existingUser;
       res.json({
         message: 'Google authentication successful',
@@ -79,6 +93,11 @@ class UserController {
     }
   }
 
+  /**
+   * Retrieves user profile with caching and following status
+   * Implements Redis caching for performance and calculates following relationship
+   * for the requesting user in real-time
+   */
   async getUser(req, res, next) {
     try {
       const { userId } = req.params;
@@ -94,10 +113,9 @@ class UserController {
         }
       });
 
-      // Debug log before DB query
       console.log('[DEBUG] Looking up user in DB:', userId);
 
-      // Try to get from cache first
+      // Implement cache-first strategy for improved performance
       let userWithoutPassword;
       const cachedUser = await redis.get(`user:${userId}`);
       
@@ -107,9 +125,8 @@ class UserController {
       } else {
         console.log('User not in cache, querying database');
         
-        // Get from database
+        // Fallback to database query when cache miss occurs
         const user = await User.findById(userId);
-        // Debug log after DB query
         console.log('[DEBUG] DB result for user:', user);
         if (!user) {
           console.log('User not found in database');
@@ -121,23 +138,23 @@ class UserController {
           email: user.email
         });
 
-        // Remove sensitive data
+        // Strip sensitive information before caching and response
         const { password_hash, ...userDataWithoutPassword } = user;
         userWithoutPassword = userDataWithoutPassword;
 
-        // Cache the result (cache only the user data, not isFollowing, since isFollowing is user-specific)
+        // Cache user data for future requests (excluding user-specific data like isFollowing)
         await redis.set(`user:${userId}`, JSON.stringify(userWithoutPassword), 'EX', CACHE_TTL);
         console.log('User cached successfully');
       }
 
-      // Always calculate isFollowing regardless of cache hit/miss
+      // Calculate following relationship dynamically for each request
+      // This is user-specific and cannot be cached
       let isFollowing = false;
-      // Skip following check for internal service requests
       if (req.user && !req.user.isInternalService && req.user.user_id !== userId) {
         isFollowing = await UserFollow.isFollowing(req.user.user_id, userId);
       }
 
-      // Add isFollowing to the response
+      // Combine cached user data with real-time following status
       const response = { ...userWithoutPassword, isFollowing };
       
       res.json(response);
@@ -325,15 +342,24 @@ class UserController {
     }
   }
 
-  // Follow a user
+  /**
+   * Creates follow relationship with cache invalidation and notifications
+   * Manages bidirectional cache cleanup, publishes analytics events,
+   * and sends notification to the followed user
+   */
   async followUser(req, res, next) {
     try {
       const followerId = req.user.user_id;
       const followingId = req.params.id;
+      
+      // Create follow relationship in database
       await UserFollow.follow(followerId, followingId);
-      // Invalidate cache for both users
+      
+      // Invalidate cached user data for both users since follower counts changed
       await redis.del(`user:${followerId}`);
       await redis.del(`user:${followingId}`);
+      
+      // Publish follow event for analytics and feed algorithms
       console.log('About to emit user_follow event');
       await rabbitmq.sendToQueue('user-events', {
         type: 'user_follow',
@@ -341,9 +367,9 @@ class UserController {
         followingId
       });
       console.log('Emitted user_follow event');
-      // Emit notification event
+      
+      // Send notification to followed user (prevent self-follow notifications)
       if (followerId !== followingId) {
-        // Fetch the actor's username (User model is already imported)
         const actor = await User.findById(followerId);
         const actorName = actor ? actor.username : followerId;
         await rabbitmq.sendToQueue('notification-events', {

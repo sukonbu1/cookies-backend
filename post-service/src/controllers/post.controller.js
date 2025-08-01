@@ -216,27 +216,38 @@ class PostController {
     }
   }
 
+  /**
+   * Updates post content with hashtag management and cache invalidation
+   * Handles field validation, hashtag extraction/linking, and cache cleanup
+   * Ensures user authorization before allowing modifications
+   */
   async updatePost(req, res, next) {
     try {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
+      
+      // Define allowed fields to prevent unauthorized data modification
       const allowedFields = [
         'title', 'description', 'content_type', 'cooking_time', 'difficulty_level',
         'serving_size', 'has_recipe', 'is_premium', 'premium_price', 'status', 'is_featured'
       ];
+      
+      // Filter request body to only include allowed fields
       const updates = {};
       for (const key of allowedFields) {
         if (req.body[key] !== undefined) {
           updates[key] = req.body[key];
         }
       }
+      
+      // Update post with ownership verification built into the model method
       const post = await Post.update(id, userId, updates);
       if (!post) return res.status(404).json({ status: 'error', message: 'Post not found or unauthorized' });
       
-      // Invalidate cache for this post
+      // Clear cached post data to ensure fresh data on next request
       await CacheUtil.invalidatePostCache(id);
       
-      // Remove old hashtags and add new ones
+      // Handle hashtag management when description is updated
       if (updates.description) {
         const hashtags = extractHashtags(updates.description);
         await Hashtag.linkPostHashtags(id, hashtags);
@@ -270,24 +281,31 @@ class PostController {
     }
   }
 
+  /**
+   * Handles post liking with comprehensive side effects management
+   * Creates like record, updates counts, invalidates cache, and triggers notifications
+   * Manages both post engagement tracking and user notification workflows
+   */
   async likePost(req, res, next) {
     try {
       const { id } = req.params;
       const userId = req.user.uid || req.user.userId;
       console.log(`[DEBUG] Like request for post ${id} by user ${userId}`);
       
+      // Create the like relationship in database
       const like = await PostLike.create(id, userId);
       console.log(`[DEBUG] Like created successfully`);
       
+      // Update post engagement counters atomically
       const updatedPost = await Post.updateCounts(id, 'likes', true);
       console.log(`[DEBUG] Post counts updated, new like count: ${updatedPost.likes_count}`);
       
-      // Invalidate cache for this post
+      // Clear cached post data to ensure fresh counts on next request
       console.log(`[DEBUG] Attempting to invalidate cache for post ${id}`);
       await CacheUtil.invalidatePostCache(id);
       console.log(`[DEBUG] Cache invalidation completed for post ${id}`);
       
-      // Verify cache is actually cleared
+      // Verify cache invalidation was successful (debugging purposes)
       const cacheKey = `post:${id}`;
       const cachedAfterInvalidation = await redis.get(cacheKey);
       if (cachedAfterInvalidation) {
@@ -296,16 +314,17 @@ class PostController {
         console.log(`[DEBUG] Cache successfully cleared for post ${id}`);
       }
       
-      // Emit event for like count update
+      // Publish post engagement event for analytics and feed updates
       await rabbitmq.sendToQueue('post-events', {
         type: 'post_like',
         postId: id
       });
       
-      // Fetch the post to get the owner
+      // Handle user notification workflow for post owner
       const post = await Post.findById(id);
-      // Fetch the actor's username
       const actorName = await HttpClient.getUsernameById(userId);
+      
+      // Send notification only if user is liking someone else's post
       if (post && post.user_id && post.user_id !== userId) {
         await rabbitmq.sendToQueue('notification-events', {
           type: 'like',
@@ -316,7 +335,7 @@ class PostController {
         });
       }
       
-      // Return the updated post data immediately
+      // Return immediate response with updated engagement data
       res.json({ 
         status: 'success', 
         data: like,
