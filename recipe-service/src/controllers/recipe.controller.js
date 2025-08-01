@@ -5,11 +5,15 @@ const RecipeStep = require('../models/recipeStep.model');
 class RecipeController {
   async createRecipe(req, res, next) {
     const { ingredients, steps, ...recipeData } = req.body;
+    const userId = req.user.uid || req.user.user_id; // Get user_id from authenticated user
     const client = await require('../../../common/src/config/database').connect();
     try {
       await client.query('BEGIN');
-      // Create recipe
-      const recipe = await Recipe.create(recipeData, client);
+      // Create recipe with user_id from authenticated user
+      const recipe = await Recipe.create({
+        ...recipeData,
+        user_id: userId // Ensure user_id is set from authenticated user
+      }, client);
       // Create ingredients
       const ingredientRecords = [];
       if (Array.isArray(ingredients)) {
