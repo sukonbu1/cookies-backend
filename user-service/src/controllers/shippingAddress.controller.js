@@ -38,6 +38,27 @@ const shippingAddressController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async upsertShippingAddress(req, res, next) {
+    try {
+      const user_id = req.user.user_id;
+      const existing = await ShippingAddress.findByUserId(user_id);
+      
+      if (existing) {
+        // Update existing address
+        const updateData = { ...req.body };
+        const address = await ShippingAddress.updateByUserId(user_id, updateData);
+        res.json({ status: 'success', data: address, action: 'updated' });
+      } else {
+        // Create new address
+        const addressData = { ...req.body, user_id };
+        const address = await ShippingAddress.create(addressData);
+        res.status(201).json({ status: 'success', data: address, action: 'created' });
+      }
+    } catch (error) {
+      next(error);
+    }
   }
 };
 

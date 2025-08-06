@@ -24,6 +24,7 @@ router.get('/search', userController.searchUsers);
 router.get('/shipping-address', authenticate, shippingAddressController.getShippingAddress);
 router.put('/shipping-address', authenticate, shippingAddressController.updateShippingAddress);
 router.post('/shipping-address', authenticate, shippingAddressController.createShippingAddress);
+router.patch('/shipping-address', authenticate, shippingAddressController.upsertShippingAddress);
 
 // User routes
 router.get('/me', authenticate, userController.getMe);
