@@ -1,4 +1,41 @@
-require('dotenv').config();
+const path = require('path');
+
+// Try multiple paths to load the .env file
+const envPath1 = path.resolve(__dirname, '../../.env');
+const envPath2 = path.resolve(process.cwd(), 'user-service/.env');
+const envPath3 = path.resolve('/home/cookies-backend/user-service/.env');
+
+console.log('Attempting to load .env from paths:');
+console.log('Path 1:', envPath1);
+console.log('Path 2:', envPath2);
+console.log('Path 3:', envPath3);
+
+// Try loading from different paths
+const fs = require('fs');
+let loadedFromPath = null;
+
+if (fs.existsSync(envPath1)) {
+  console.log('Loading .env from path 1:', envPath1);
+  require('dotenv').config({ path: envPath1 });
+  loadedFromPath = envPath1;
+} else if (fs.existsSync(envPath2)) {
+  console.log('Loading .env from path 2:', envPath2);
+  require('dotenv').config({ path: envPath2 });
+  loadedFromPath = envPath2;
+} else if (fs.existsSync(envPath3)) {
+  console.log('Loading .env from path 3:', envPath3);
+  require('dotenv').config({ path: envPath3 });
+  loadedFromPath = envPath3;
+} else {
+  console.log('No .env file found, trying default dotenv config');
+  require('dotenv').config();
+}
+
+console.log('Loaded .env from:', loadedFromPath);
+console.log('Current working directory:', process.cwd());
+console.log('__dirname:', __dirname);
+
+
 const rabbitmq = require('../utils/rabbitmq.util');
 const pool = require('../../../common/src/config/database');
 const HttpClient = require('../utils/http.util');
