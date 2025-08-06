@@ -44,6 +44,7 @@ router.get('/:id/following', userController.getFollowing);
 router.post('/email-by-username', userController.getEmailByUsername);
 
 router.post('/google-auth', userController.googleAuth);
+router.post('/refresh-token', authenticate, userController.refreshToken);
 router.post('/logout', userController.logout);
 
 module.exports = router;

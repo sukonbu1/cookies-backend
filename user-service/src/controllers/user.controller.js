@@ -1,7 +1,7 @@
 const User = require('../models/user.model');
 const redis = require('../../../common/src/config/redis');
 const admin = require('../../../common/src/config/firebase');
-const TokenUtils = require('../utils/token.utils');
+const TokenUtils = require('../../../common/src/utils/token.utils');
 const UserFollow = require('../models/user-follow.model');
 const rabbitmq = require('../utils/rabbitmq.util');
 
@@ -68,9 +68,10 @@ class UserController {
         }
       }
 
-      // Generate custom token for internal session management
+      // Generate custom token for internal session management with additional claims
       const customToken = await TokenUtils.createCustomToken(decodedToken.uid, {
         email: existingUser.email,
+        username: existingUser.username,
         role: existingUser.role || 'user'
       });
       TokenUtils.setAuthCookie(res, customToken);
@@ -468,6 +469,40 @@ class UserController {
       next(error);
     }
   }
+
+  /**
+   * Refreshes the authentication token
+   * Generates a new custom token with fresh expiration time
+   */
+  async refreshToken(req, res, next) {
+    try {
+      console.log('Token refresh requested for user:', {
+        userId: req.user.user_id,
+        email: req.user.email
+      });
+
+      // Generate new custom token with fresh expiration
+      const customToken = await TokenUtils.createCustomToken(req.user.user_id, {
+        email: req.user.email,
+        username: req.user.username,
+        role: req.user.role || 'user'
+      });
+      
+      // Set the new token in cookie
+      TokenUtils.setAuthCookie(res, customToken);
+      
+      res.json({
+        message: 'Token refreshed successfully',
+        user: req.user
+      });
+    } catch (error) {
+      console.error('Error refreshing token:', {
+        message: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
 }
 
 const userControllerInstance = new UserController();
@@ -488,5 +523,6 @@ module.exports = {
   getFollowers: userControllerInstance.getFollowers.bind(userControllerInstance),
   getFollowing: userControllerInstance.getFollowing.bind(userControllerInstance),
   searchUsers: userControllerInstance.searchUsers.bind(userControllerInstance),
-  getEmailByUsername: userControllerInstance.getEmailByUsername.bind(userControllerInstance)
+  getEmailByUsername: userControllerInstance.getEmailByUsername.bind(userControllerInstance),
+  refreshToken: userControllerInstance.refreshToken.bind(userControllerInstance)
 }; 
