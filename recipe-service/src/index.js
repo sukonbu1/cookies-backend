@@ -1,10 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const app = express();
 const recipeRoutes = require('./routes/recipe.routes');
 
 app.use(express.json());
+app.use(cookieParser());
 
 // CORS configuration
 const allowedOrigins = [
